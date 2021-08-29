@@ -252,7 +252,7 @@ def main():
         if task_name not in model.config.adapters:
             adapter_config = AdapterConfig.load(
                 adapter_args.adapter_config,
-                nowddn_linearity=adapter_args.adapter_nonlinearity,
+                non_linearity=adapter_args.adapter_nonlinearity,
                 reduction_factor=adapter_args.adapter_reduction_factor,
             )
 
