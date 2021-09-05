@@ -17,6 +17,8 @@ ward = "^0.63.0-beta.0"
 click = "^8.0.1"
 srsly = "^2.4.1"
 torchmetrics = "^0.5.1"
+requests = "^2.26.0"
+art = "^5.3"
 
 [tool.poetry.dev-dependencies]
 ward = "^0.63.0-beta.0"
@@ -26,3 +28,6 @@ ipython = "^7.26.0"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+"domadapter" = "domadapter.commands.domadapter_group:main"
