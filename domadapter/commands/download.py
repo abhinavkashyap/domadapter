@@ -1,6 +1,8 @@
 import click
+from datasets import load_dataset
 from domadapter.utils.download_utils import GoogleDriveDownloader
 from domadapter.utils.general_utils import unzip_file
+from domadapter.utils.mnli_utils import prepare_mnli
 from domadapter.console import console
 import os
 from pathlib import Path
@@ -14,7 +16,6 @@ def download():
 @download.command()
 def sa():
     """ Download Sentiment Analysis Dataset for Unsupervised Domain Adaptation
-
     """
     downloader = GoogleDriveDownloader()
     dataset_cache = os.environ["DATASET_CACHE_DIR"]
@@ -37,6 +38,18 @@ def sa():
     destination_file.unlink()
 
     console.print(f"[green] SA Data Available")
+
+@download.command()
+def mnli():
+    """ Download Multi-Genre Natural Language Inference Dataset for Unsupervised Domain Adaptation
+    """
+
+    load_dataset("multi_nli")
+
+    with console.status("Preparing MNLI data. This may take a while, please wait..."):
+        prepare_mnli()
+
+    console.print(f"[green] MNLI Data Available")
 
 
 if __name__ == "__main__":
