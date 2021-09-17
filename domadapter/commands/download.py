@@ -46,8 +46,7 @@ def mnli():
 
     load_dataset("multi_nli")
 
-    with console.status("Preparing MNLI data. This may take a while, please wait..."):
-        prepare_mnli()
+    prepare_mnli()
 
     console.print(f"[green] MNLI Data Available")
 
