@@ -64,7 +64,7 @@ class DomainTaskAdaptor(pl.LightningModule):
             attention_mask (Tensor): attention mask tensor
         """
         logits = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        return logits.pooler_outputs
+        return logits.pooler_output
 
     def training_step(self, batch, batch_idx):
         """training step of DomainTaskAdaptor"""
