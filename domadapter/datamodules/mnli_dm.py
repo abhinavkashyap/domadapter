@@ -1,5 +1,6 @@
 from typing import Optional, Dict, List
 from rich.traceback import install
+import ntpath
 import os
 import torch
 
@@ -32,7 +33,7 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                 If `overwrite_cache` is True, then download every time and ignore
                 any downloaded versions
             source_target: str
-                Indicates the source and target domain of dataset. 
+                Indicates the source and target domain of dataset.
                 Should be of the form {source domain}_{target domain}
             tokenizer: PreTrainedTokenizer
                 A pretrained tokenizer from the transformer library
@@ -78,7 +79,7 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                 pad_to_max_length = self.pad_to_max_length,
                 max_seq_length = self.max_seq_length
             )
-        
+
 
         def setup(self, stage: Optional[str] = None):
             train_dataset = SourceTargetDataset(
@@ -95,10 +96,10 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                                 pad_to_max_length = self.pad_to_max_length,
                                 max_seq_length = self.max_seq_length
             )
-            
+
             if stage == "fit":
                 self.train_dataset = train_dataset
-                self.val_dataset = val_dataset 
+                self.val_dataset = val_dataset
 
 
         def train_dataloader(self):
@@ -109,7 +110,7 @@ class DataModuleSourceTarget(pl.LightningDataModule):
             return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
 
-    
+
 
 class SourceTargetDataset(Dataset):
     def __init__(self, source_filepath, target_filepath, tokenizer, pad_to_max_length, max_seq_length):
@@ -119,11 +120,12 @@ class SourceTargetDataset(Dataset):
 
         self.source_df = pd.read_csv(source_filepath)
         self.target_df = pd.read_csv(target_filepath)
+        self.target_filename = ntpath.basename(target_filepath)
 
     def __getitem__(self, index):
         premise = self.source_df.iloc[index]["premise"]
         hypothesis = self.source_df.iloc[index]["hypothesis"]
-        label = self.source_df.iloc[index]["label"]
+        label_source = self.source_df.iloc[index]["label"]
 
         encoded_input = self.tokenizer(
                 str(premise),
@@ -146,14 +148,23 @@ class SourceTargetDataset(Dataset):
             )
         target_input_ids = encoded_input["input_ids"]
         target_attention_mask = encoded_input["attention_mask"]
-
-
-        data_input = {
+        if 'unlabelled' not in self.target_filename:
+            label_target = self.target_df.iloc[index]["label"]
+            data_input = {
             "source_input_ids": torch.tensor(source_input_ids),
             "source_attention_mask": torch.tensor(source_attention_mask),
             "target_input_ids": torch.tensor(target_input_ids),
             "target_attention_mask": torch.tensor(target_attention_mask),
-            "label": torch.tensor(label, dtype=torch.long),
+            "label_source": torch.tensor(label_source, dtype=torch.long),
+            "label_target": torch.tensor(label_target, dtype=torch.long),
+        }
+        else:
+            data_input = {
+            "source_input_ids": torch.tensor(source_input_ids),
+            "source_attention_mask": torch.tensor(source_attention_mask),
+            "target_input_ids": torch.tensor(target_input_ids),
+            "target_attention_mask": torch.tensor(target_attention_mask),
+            "label_source": torch.tensor(label_source, dtype=torch.long),
         }
 
         return data_input
