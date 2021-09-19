@@ -22,23 +22,23 @@ class DomainAdapter(pl.LightningModule):
         self.save_hyperparameters(hparams)
 
         # config
-        self.config = AutoConfig.from_pretrained(self.hprams['pretrained_model_name'])
+        self.config = AutoConfig.from_pretrained(self.hparams['pretrained_model_name'])
         # to get the layer wise pre-trained model outputs
         self.config.output_hidden_states = True
 
         # load the model weights
-        with console.status(f"Loading {self.hprams['pretrained_model_name']} Model", spinner="monkey"):
+        with console.status(f"Loading {self.hparams['pretrained_model_name']} Model", spinner="monkey"):
             self.model = AutoModelWithHeads.from_pretrained(
-                self.hprams['pretrained_model_name'], config=self.config
+                self.hparams['pretrained_model_name'], config=self.config
             )
         console.print(
-            f"[green] Loaded {self.hprams['pretrained_model_name']} model"
+            f"[green] Loaded {self.hparams['pretrained_model_name']} model"
         )
 
         # add adapter a new adapter
-        self.model.add_adapter(self.hprams['domain_adapter_name'])
+        self.model.add_adapter(self.hparams['domain_adapter_name'])
         # activate the adapter
-        self.model.train_adapter(self.hprams['domain_adapter_name'])
+        self.model.train_adapter(self.hparams['domain_adapter_name'])
         # object to compute the divergence
         self.criterion = CMD()
 
