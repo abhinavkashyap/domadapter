@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from rich.traceback import install
 import ntpath
 import os
@@ -7,7 +7,7 @@ import torch
 import pytorch_lightning as pl
 import pandas as pd
 
-from transformers import PreTrainedTokenizer
+from transformers import AutoTokenizer
 from torch.utils.data import Dataset, DataLoader
 
 install(show_locals=True)
@@ -16,27 +16,23 @@ install(show_locals=True)
 class DataModuleSourceTarget(pl.LightningDataModule):
         def __init__(
         self,
-        dataset_cache_dir: str,
-        source_target: str,
-        tokenizer: PreTrainedTokenizer,
-        pad_to_max_length: bool = True,
-        max_seq_length: int = None,
-        batch_size: int = 32):
+        hparams: Dict[str, Any],
+        ):
 
             """
             Use the torch Datasets to load MNLI datasets
-            Parameters
+            hparams: Dict[str, Any]
+            hyper-parameters for the classification data module
+            the following keys shold be present in the dictionary:
             ----------
             dataset_cache_dir: str
-                Folder name stores the GLUE dataset downloaded from the web.
+                Folder name stores the MNLI dataset downloaded from the web.
                 If downloaded already, use it from the directory
-                If `overwrite_cache` is True, then download every time and ignore
-                any downloaded versions
             source_target: str
                 Indicates the source and target domain of dataset.
                 Should be of the form {source domain}_{target domain}
-            tokenizer: PreTrainedTokenizer
-                A pretrained tokenizer from the transformer library
+            pretrained_model_name: str
+                Name of pretrained to be used from the transformer library
             pad_to_max_length: bool
                 Sets padding to True for the  hugging face tokenizer
                 https://huggingface.co/transformers/internal/tokenization_utils.html
@@ -54,16 +50,19 @@ class DataModuleSourceTarget(pl.LightningDataModule):
 
             super(DataModuleSourceTarget, self).__init__()
 
-            self.dataset_cache_dir = dataset_cache_dir
-            self.source_target = source_target
-            self.tokenizer = tokenizer
-            self.pad_to_max_length = pad_to_max_length
-            self.max_seq_length = max_seq_length
+            self.dataset_cache_dir = hparams["dataset_cache_dir"]
+            self.source_target = hparams["source_target"]
+            self.pretrained_model_name = hparams["pretrained_model_name"]
+            self.pad_to_max_length = hparams["pad_to_max_length"]
+            self.max_seq_length = hparams["max_seq_length"]
 
             self.train_dataset = None
             self.val_dataset = None
             self.test_dataset = None
-            self.batch_size = batch_size
+            self.batch_size = hparams["batch_size"]
+
+            # get the tokenizer using the pretrained_model_name that is required for transformers
+            self.tokenizer = AutoTokenizer.from_pretrained(self.pretrained_model_name, usefast=True)
 
         def prepare_data(self):
             SourceTargetDataset(
@@ -193,16 +192,16 @@ class SourceTargetDataset(Dataset):
 
 
 if __name__ == '__main__':
-    from transformers import AutoTokenizer
 
-    bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    data_module = DataModuleSourceTarget(
-        dataset_cache_dir=os.environ["DATASET_CACHE_DIR"],
-        source_target="slate_travel",
-        tokenizer=bert_tokenizer,
-        pad_to_max_length= True,
-        max_seq_length=128
-    )
+    hpams = {
+        "dataset_cache_dir": os.environ["DATASET_CACHE_DIR"],
+        "source_target": "slate_travel",
+        "pretrained_model_name": "bert-base-uncased",
+        "pad_to_max_length": True,
+        "max_seq_length": 128,
+        "batch_size": 4
+    }
+    data_module = DataModuleSourceTarget(hpams)
     data_module.prepare_data()
     # data_module.setup("fit")
     # train_loader = data_module.train_dataloader()
