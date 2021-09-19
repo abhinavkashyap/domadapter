@@ -62,6 +62,7 @@ class DataModuleSourceTarget(pl.LightningDataModule):
 
             self.train_dataset = None
             self.val_dataset = None
+            self.test_dataset = None
             self.batch_size = batch_size
 
         def prepare_data(self):
@@ -75,6 +76,13 @@ class DataModuleSourceTarget(pl.LightningDataModule):
             SourceTargetDataset(
                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "dev_source.csv"),
                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "dev_target.csv"),
+                tokenizer=self.tokenizer,
+                pad_to_max_length = self.pad_to_max_length,
+                max_seq_length = self.max_seq_length
+            )
+            SourceTargetDataset(
+                source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_source.csv"),
+                target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_target.csv"),
                 tokenizer=self.tokenizer,
                 pad_to_max_length = self.pad_to_max_length,
                 max_seq_length = self.max_seq_length
@@ -96,18 +104,28 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                                 pad_to_max_length = self.pad_to_max_length,
                                 max_seq_length = self.max_seq_length
             )
+            test_dataset = SourceTargetDataset(
+                                source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_source.csv"),
+                                target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_target.csv"),
+                                tokenizer=self.tokenizer,
+                                pad_to_max_length = self.pad_to_max_length,
+                                max_seq_length = self.max_seq_length
+            )
 
             if stage == "fit":
                 self.train_dataset = train_dataset
                 self.val_dataset = val_dataset
-
+            elif stage == "test":
+                self.test_dataset = test_dataset
 
         def train_dataloader(self):
             return DataLoader(self.train_dataset, batch_size=self.batch_size)
 
-
         def val_dataloader(self):
             return DataLoader(self.val_dataset, batch_size=self.batch_size)
+
+        def test_dataloader(self):
+            return DataLoader(self.test_dataset, batch_size=self.batch_size)
 
 
 
@@ -186,6 +204,9 @@ if __name__ == '__main__':
         max_seq_length=128
     )
     data_module.prepare_data()
-    data_module.setup("fit")
-    train_loader = data_module.train_dataloader()
-    print(next(iter(train_loader)))
+    # data_module.setup("fit")
+    # train_loader = data_module.train_dataloader()
+    # print(next(iter(train_loader)))
+    data_module.setup("test")
+    test_loader = data_module.test_dataloader()
+    print(next(iter(test_loader)))
