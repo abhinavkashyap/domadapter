@@ -27,29 +27,29 @@ class DomainTaskAdaptor(pl.LightningModule):
         self.save_hyperparameters(hparams)
 
         # config
-        self.config = AutoConfig.from_pretrained(self.hprams['pretrained_model_name'])
+        self.config = AutoConfig.from_pretrained(self.hparams['pretrained_model_name'])
         # to get the layer wise pre-trained model outputs
         self.config.output_hidden_states = True
 
         # load the model weights
-        with console.status(f"Loading {self.hprams['pretrained_model_name']} Model", spinner="monkey"):
+        with console.status(f"Loading {self.hparams['pretrained_model_name']} Model", spinner="monkey"):
             self.model = AutoModelWithHeads.from_pretrained(
-                self.hprams['pretrained_model_name'], config=self.config
+                self.hparams['pretrained_model_name'], config=self.config
             )
         console.print(
-            f"[green] Loaded {self.hprams['pretrained_model_name']} base model"
+            f"[green] Loaded {self.hparams['pretrained_model_name']} base model"
         )
 
         # load domain adapter to PLM
-        self.model.load_adapter(self.hprams['domain_adapter_name'])
+        self.model.load_adapter(self.hparams['domain_adapter_name'])
         # add task adapter to PLM
-        self.model.add_adapter(self.hprams['task_adapter_name'])
+        self.model.add_adapter(self.hparams['task_adapter_name'])
         # add classification head to task adapter
-        self.model.add_classification_head(self.hprams['task_adapter_name'], num_labels=self.hprams['task_adapter_num_labels'])
+        self.model.add_classification_head(self.hparams['task_adapter_name'], num_labels=self.hparams['task_adapter_num_labels'])
         # stack adapters
-        self.model.active_adapters = Stack(self.hprams['domain_adapter_name'], self.hprams['task_adapter_name'])
+        self.model.active_adapters = Stack(self.hparams['domain_adapter_name'], self.hparams['task_adapter_name'])
         # Freeze all parameters and train only task adapter
-        self.model.train_adapter([self.hprams['task_adapter_name']])
+        self.model.train_adapter([self.hparams['task_adapter_name']])
 
         self.criterion = CrossEntropyLoss()
         # accuracy
