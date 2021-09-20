@@ -11,7 +11,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from transformers.adapters.composition import Stack
 import numpy as np
 
-from domadapter.models.domain_adapter import DomainAdapter
 import torchmetrics
 
 class DomainTaskAdaptor(pl.LightningModule):
@@ -54,6 +53,20 @@ class DomainTaskAdaptor(pl.LightningModule):
         self.criterion = CrossEntropyLoss()
         # accuracy
         self.accuracy = torchmetrics.Accuracy()
+        # F1
+        self.f1 = torchmetrics.F1(num_classes=hparams['num_classes'], average='macro')
+
+        self.softmax = nn.Softmax(dim=1)
+
+        #######################################################################
+        # OPTIMIZER RELATED VARIABLES
+        #######################################################################
+        self.learning_rate = self.hparams.get("learning_rate")
+        self.scheduler_factor = self.hparams.get("scheduler_factor", 0.1)
+        self.scheduler_patience = self.hparams.get("scheduler_patience", 2)
+        self.scheduler_threshold = self.hparams.get("scheduler_threshold", 0.0001)
+        self.scheduler_cooldown = self.hparams.get("scheduler_cooldown", 0)
+        self.scheduler_eps = self.hparams.get("scheduler_eps", 1e-8)
 
 
     def forward(self, input_ids, attention_mask):
@@ -63,8 +76,8 @@ class DomainTaskAdaptor(pl.LightningModule):
             input_ids (Tensor): input ids tensor
             attention_mask (Tensor): attention mask tensor
         """
-        logits = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        return logits.pooler_output
+        logits = self.model(input_ids=input_ids, attention_mask=attention_mask).logits
+        return logits
 
     def training_step(self, batch, batch_idx):
         """training step of DomainTaskAdaptor"""
@@ -77,11 +90,20 @@ class DomainTaskAdaptor(pl.LightningModule):
         # get the loss
         loss = self.criterion(logits, labels)
         # compute accuracy
-        accuracy = self.accuracy(labels, logits.softmax(dim=-1).view(-1))
+        accuracy = self.accuracy(labels, torch.argmax(self.softmax(logits),dim=1))
+        f1 = self.f1(labels, torch.argmax(self.softmax(logits),dim=1))
 
         self.log(
             "train/accuracy",
             accuracy,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+        )
+        self.log(
+            "train/f1",
+            f1,
             on_step=True,
             on_epoch=False,
             prog_bar=False,
@@ -105,28 +127,34 @@ class DomainTaskAdaptor(pl.LightningModule):
         logits = self(input_ids=input_ids, attention_mask=attention_mask)
         labels = batch['label_source']
         source_loss = self.criterion(logits, labels)
-        source_accuracy = self.accuracy(labels, logits.softmax(dim=-1).view(-1))
+        source_accuracy = self.accuracy(labels, torch.argmax(self.softmax(logits),dim=1))
+        source_f1 = self.f1(labels, torch.argmax(self.softmax(logits),dim=1))
 
         # get the input ids and attention mask for target data
         input_ids, attention_mask = batch["target_input_ids"], batch["target_attention_mask"]
         logits = self(input_ids=input_ids, attention_mask=attention_mask)
         labels = batch['label_target']
         target_loss = self.criterion(logits, labels)
-        target_accuracy = self.accuracy(labels, logits.softmax(dim=-1).view(-1))
+        target_accuracy = self.accuracy(labels, torch.argmax(self.softmax(logits),dim=1))
+        target_f1 = self.f1(labels, torch.argmax(self.softmax(logits),dim=1))
 
         # need not to log here (or we can do it but let's log at the end of each epoch)
         return {"source_val/loss":source_loss,
                 "source_val/accuracy":source_accuracy,
+                "source_val/f1":source_f1,
                 "target_val/loss":target_loss,
-                "target_val/accuracy":target_accuracy
+                "target_val/accuracy":target_accuracy,
+                "target_val/f1":target_f1,
         }
 
     def validation_epoch_end(self, outputs):
         mean_source_loss = torch.stack([x['source_val/loss'] for x in outputs]).mean()
         mean_source_accuracy = torch.stack([x['source_val/accuracy'] for x in outputs]).mean()
+        mean_source_f1 = torch.stack([x['source_val/f1'] for x in outputs]).mean()
 
         mean_target_loss = torch.stack([x['target_val/loss'] for x in outputs]).mean()
         mean_target_accuracy = torch.stack([x['target_val/accuracy'] for x in outputs]).mean()
+        mean_target_f1 = torch.stack([x['target_val/f1'] for x in outputs]).mean()
 
         # this will log the mean div value across epoch
         self.log(
@@ -139,14 +167,14 @@ class DomainTaskAdaptor(pl.LightningModule):
         )
         # this will log the mean div value across epoch
         self.log(
-            "source_val/loss",
+            "source_val/accuracy",
             value=mean_source_accuracy,
             prog_bar=False,
             on_step=False,
             logger=True,
             on_epoch=True,
         )
-                # this will log the mean div value across epoch
+        # this will log the mean div value across epoch
         self.log(
             "target_val/loss",
             value=mean_target_loss,
@@ -159,6 +187,24 @@ class DomainTaskAdaptor(pl.LightningModule):
         self.log(
             "target_val/accuracy",
             value=mean_target_accuracy,
+            prog_bar=False,
+            on_step=False,
+            logger=True,
+            on_epoch=True,
+        )
+        # this will log the mean div value across epoch
+        self.log(
+            "target_val/f1",
+            value=mean_target_f1,
+            prog_bar=False,
+            on_step=False,
+            logger=True,
+            on_epoch=True,
+        )
+        # this will log the mean div value across epoch
+        self.log(
+            "source_val/f1",
+            value=mean_source_f1,
             prog_bar=False,
             on_step=False,
             logger=True,
@@ -212,15 +258,8 @@ class DomainTaskAdaptor(pl.LightningModule):
 
 
     def configure_optimizers(self):
-
-        optimizer = torch.optim.AdamW(
-            params=self.model.parameters(),
-            lr=self.hparams['learning_rate'],
-            betas=self.hparams['betas'],
-            eps=self.hparams['eps'],
-            weight_decay=self.hparams['weight_decay'],
-            # amsgrad=self.hparams['amsgrad'], not using this hparam
-        )
+        learning_rate = self.learning_rate
+        optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         lr_scheduler = ReduceLROnPlateau(
             optimizer=optimizer,
             mode="min",
@@ -238,12 +277,11 @@ class DomainTaskAdaptor(pl.LightningModule):
                 {
                     "scheduler": lr_scheduler,
                     "reduce_lr_on_plateau": True,
-                    "monitor": "train/divergence",
+                    "monitor": "source_val/loss",
                     "interval": "epoch",
                 }
             ],
         )
-
 
 
 

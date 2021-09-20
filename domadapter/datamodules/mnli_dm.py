@@ -59,7 +59,7 @@ class DataModuleSourceTarget(pl.LightningDataModule):
             self.train_dataset = None
             self.val_dataset = None
             self.test_dataset = None
-            self.batch_size = hparams["batch_size"]
+            self.batch_size = hparams["bsz"]
 
             # get the tokenizer using the pretrained_model_name that is required for transformers
             self.tokenizer = AutoTokenizer.from_pretrained(self.pretrained_model_name, usefast=True)
