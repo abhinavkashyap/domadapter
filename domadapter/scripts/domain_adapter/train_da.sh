@@ -4,17 +4,17 @@
 TRAIN_PROP=0.0003
 DEV_PROP=0.005
 EXP_DIR=${OUTPUT_DIR}
-SEED=666
+SEED=17
 BSZ=4
 EPOCHS=2
 MAX_SEQ_LENGTH=128
-PAD_TO_MAX_LENGTH=True
+PADDING=max_length
 LR=0.0001
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_adapter.py"
 
 for i in "fiction" "travel"; do
-    for j in  "slate"; do
+    for j in "slate"; do
         python ${PYTHON_FILE} \
             --dataset-cache-dir ${DATASET_CACHE_DIR} \
             --source-target  "${i}_${j}" \
@@ -24,7 +24,7 @@ for i in "fiction" "travel"; do
             --dev-proportion ${DEV_PROP} \
             --gpu ${GPU} \
             --max-seq-length ${MAX_SEQ_LENGTH} \
-            --pad-to-max-length ${PAD_TO_MAX_LENGTH} \
+            --padding ${PADDING} \
             --lr ${LR} \
             --log-freq 5 \
             --epochs ${EPOCHS} \

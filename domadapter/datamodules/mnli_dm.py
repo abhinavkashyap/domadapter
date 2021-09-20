@@ -50,10 +50,12 @@ class DataModuleSourceTarget(pl.LightningDataModule):
 
             super(DataModuleSourceTarget, self).__init__()
 
+            os.environ["TOKENIZERS_PARALLELISM"] = "True"
+
             self.dataset_cache_dir = hparams["dataset_cache_dir"]
             self.source_target = hparams["source_target"]
             self.pretrained_model_name = hparams["pretrained_model_name"]
-            self.pad_to_max_length = hparams["pad_to_max_length"]
+            self.padding = hparams["padding"]
             self.max_seq_length = hparams["max_seq_length"]
 
             self.train_dataset = None
@@ -69,21 +71,21 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "train_source.csv"),
                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "target_unlabelled.csv"),
                 tokenizer=self.tokenizer,
-                pad_to_max_length = self.pad_to_max_length,
+                padding = self.padding,
                 max_seq_length = self.max_seq_length
             )
             SourceTargetDataset(
                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "dev_source.csv"),
                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "dev_target.csv"),
                 tokenizer=self.tokenizer,
-                pad_to_max_length = self.pad_to_max_length,
+                padding = self.padding,
                 max_seq_length = self.max_seq_length
             )
             SourceTargetDataset(
                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_source.csv"),
                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_target.csv"),
                 tokenizer=self.tokenizer,
-                pad_to_max_length = self.pad_to_max_length,
+                padding = self.padding,
                 max_seq_length = self.max_seq_length
             )
 
@@ -93,21 +95,21 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "train_source.csv"),
                                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "target_unlabelled.csv"),
                                 tokenizer=self.tokenizer,
-                                pad_to_max_length = self.pad_to_max_length,
+                                padding = self.padding,
                                 max_seq_length = self.max_seq_length
             )
             val_dataset = SourceTargetDataset(
                                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "dev_source.csv"),
                                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "dev_target.csv"),
                                 tokenizer=self.tokenizer,
-                                pad_to_max_length = self.pad_to_max_length,
+                                padding = self.padding,
                                 max_seq_length = self.max_seq_length
             )
             test_dataset = SourceTargetDataset(
                                 source_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_source.csv"),
                                 target_filepath=os.path.join(os.environ["DATASET_CACHE_DIR"], "mnli", self.source_target, "test_target.csv"),
                                 tokenizer=self.tokenizer,
-                                pad_to_max_length = self.pad_to_max_length,
+                                padding = self.padding,
                                 max_seq_length = self.max_seq_length
             )
 
@@ -118,22 +120,22 @@ class DataModuleSourceTarget(pl.LightningDataModule):
                 self.test_dataset = test_dataset
 
         def train_dataloader(self):
-            return DataLoader(self.train_dataset, batch_size=self.batch_size)
+            return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=4)
 
         def val_dataloader(self):
-            return DataLoader(self.val_dataset, batch_size=self.batch_size)
+            return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=4)
 
         def test_dataloader(self):
-            return DataLoader(self.test_dataset, batch_size=self.batch_size)
+            return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=4)
 
 
 
 
 class SourceTargetDataset(Dataset):
-    def __init__(self, source_filepath, target_filepath, tokenizer, pad_to_max_length, max_seq_length):
+    def __init__(self, source_filepath, target_filepath, tokenizer, padding, max_seq_length):
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
-        self.pad_to_max_length = pad_to_max_length
+        self.padding = padding
 
         self.source_df = pd.read_csv(source_filepath)
         self.target_df = pd.read_csv(target_filepath)
@@ -149,7 +151,7 @@ class SourceTargetDataset(Dataset):
                 str(hypothesis),
                 max_length= self.max_seq_length,
                 truncation=True,
-                pad_to_max_length=self.pad_to_max_length
+                padding=self.padding
             )
         source_input_ids = encoded_input["input_ids"]
         source_attention_mask = encoded_input["attention_mask"]
@@ -161,7 +163,7 @@ class SourceTargetDataset(Dataset):
                 str(hypothesis),
                 max_length= self.max_seq_length,
                 truncation=True,
-                pad_to_max_length=self.pad_to_max_length
+                padding=self.padding
             )
         target_input_ids = encoded_input["input_ids"]
         target_attention_mask = encoded_input["attention_mask"]
