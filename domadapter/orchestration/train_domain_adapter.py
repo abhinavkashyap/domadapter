@@ -14,9 +14,6 @@ from rich.prompt import Confirm
 import shutil
 
 
-# TODO:
-# add --gpu ${GPU} \ in train_da.sh
-
 @click.command()
 
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
@@ -31,7 +28,7 @@ import shutil
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
-# @click.option("--gpu", type=int, help="GPU to run the program on")
+@click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
 def train_domain_adapter(
     bsz,
@@ -47,7 +44,7 @@ def train_domain_adapter(
     log_freq,
     lr,
     epochs,
-    # gpu
+    gpu
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
@@ -66,18 +63,17 @@ def train_domain_adapter(
 
     hyperparams = {
         "bsz": bsz,
-        "cache_dir": str(dataset_cache_dir),
         "train_proportion": train_proportion,
         "dev_proportion": dev_proportion,
         "source_target": source_target,
-        "dataset_cache_dir": dataset_cache_dir,
+        "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
         "seed": seed,
         "learning_rate": lr,
-        "epochs": epochs,
-        # "gpu": gpu,
+        "epochs": int(epochs),
+        "gpu": gpu,
         "pretrained_model_name": str(pretrained_model_name),
-        "max_seq_length": max_seq_length,
+        "max_seq_length": int(max_seq_length),
         "pad_to_max_length": pad_to_max_length
     }
 
@@ -101,8 +97,6 @@ def train_domain_adapter(
 
     logger.watch(model, log="gradients", log_freq=log_freq)
 
-    callbacks = []
-
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
@@ -116,14 +110,15 @@ def train_domain_adapter(
         verbose=False,
         mode="min")
 
-    callbacks.append(checkpoint_callback, early_stop_callback)
+    callbacks = [checkpoint_callback, early_stop_callback]
 
     trainer = Trainer(
         limit_train_batches=train_proportion,
         limit_val_batches=dev_proportion,
         callbacks=callbacks,
         terminate_on_nan=True,
-        gpus=str(gpu),
+        log_every_n_steps=log_freq,
+        # gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
     )
