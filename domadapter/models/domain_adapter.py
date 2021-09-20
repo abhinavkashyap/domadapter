@@ -141,14 +141,14 @@ class DomainAdapter(pl.LightningModule):
             prog_bar=False,
             logger=True,
         )
-        return {"val/divergence": divergence}
+        return {"loss": divergence}
 
     def validation_epoch_end(self, outputs):
-        mean_divergenence = torch.stack([x['val/divergence'] for x in outputs]).mean()
+        mean_divergenence = torch.stack([x['loss'] for x in outputs]).mean()
 
         # this will show the mean div value across epoch
         self.log(
-            "val/divergence",
+            "val/epoch_divergence",
             value=mean_divergenence,
             prog_bar=False,
             on_step=False,
