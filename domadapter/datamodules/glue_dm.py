@@ -4,6 +4,7 @@ from rich.traceback import install
 from datasets import load_dataset
 from transformers import PreTrainedTokenizer
 from torch.utils.data import DataLoader
+from transformers import default_data_collator
 
 # Pretty prints traceback in the console using `rich`
 install(show_locals=True)
@@ -80,7 +81,15 @@ class GlueDM(pl.LightningDataModule):
         self.tokenizer = tokenizer
         self.overwrite_cache = overwrite_cache
         self.pad_to_max_length = pad_to_max_length
-        self.max_seq_length = max_seq_length
+
+        if pad_to_max_length is True:
+            self.data_collator = default_data_collator
+            self.padding = "max_length"
+            self.max_seq_length = max_seq_length
+        else:
+            self.data_collator = None
+            self.padding = None
+            self.max_seq_length = None
 
         self.datasets = None  # Store the dataset
         self.labels: List[str] = None  # Store the labels used
@@ -138,7 +147,7 @@ class GlueDM(pl.LightningDataModule):
 
         # Return a pytorch tensor when the dataset is indexed like self.datasets[0]
         self.datasets.set_format(
-            type="torch", columns=["input_ids", "token_type_ids", "attention_mask", "label"]
+            type="torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
         )
 
         # Return the dataset
@@ -159,13 +168,19 @@ class GlueDM(pl.LightningDataModule):
             raise ValueError("stage can be on of [fit, val, test]")
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size)
+        return DataLoader(
+            self.train_dataset, batch_size=self.batch_size, collate_fn=self.data_collator
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size)
+        return DataLoader(
+            self.val_dataset, batch_size=self.batch_size, collate_fn=self.data_collator
+        )
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size)
+        return DataLoader(
+            self.test_dataset, batch_size=self.batch_size, collate_fn=self.data_collator
+        )
 
     def preprocess_function(self, examples):
         sentence1_key, sentence2_key = self.task_to_keys[self.task_name]
@@ -176,25 +191,20 @@ class GlueDM(pl.LightningDataModule):
         )
 
         result = self.tokenizer(
-            *args, padding=self.pad_to_max_length, max_length=self.max_seq_length, truncation=True
+            *args, padding=self.padding, max_length=self.max_seq_length, truncation=True
         )
 
         result["labels"] = examples["label"]
 
         return result
 
+    def get_num_labels(self) -> int:
+        """Return the number of labels
 
-if __name__ == "__main__":
-    from transformers import AutoTokenizer
+        Returns
+        -------
+        int
+            Number of labels in the task
 
-    bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    dm = GlueDM(
-        task_name="cola",
-        dataset_cache_dir=".",
-        tokenizer=bert_tokenizer,
-    )
-    dm.prepare_data()
-    dm.setup("fit")
-    train_loader = dm.train_dataloader()
-    inputs = next(iter(train_loader))
-    attention_mask = inputs["attention_mask"]
+        """
+        return self.num_labels
