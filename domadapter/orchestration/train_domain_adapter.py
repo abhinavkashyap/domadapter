@@ -19,7 +19,7 @@ import shutil
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
 @click.option("--source-target", type=str, help="Source and target domain in source_target format")
 @click.option("--pretrained-model-name", type=str, help="PLM to be used from HF")
-@click.option("--pad-to-max-length", type=bool, help="Add padding while tokenizing upto max length")
+@click.option("--padding", type=str, help="Add padding while tokenizing upto max length")
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
@@ -37,7 +37,7 @@ def train_domain_adapter(
     train_proportion,
     dev_proportion,
     max_seq_length,
-    pad_to_max_length,
+    padding,
     source_target,
     exp_dir,
     seed,
@@ -74,7 +74,7 @@ def train_domain_adapter(
         "gpu": gpu,
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
-        "pad_to_max_length": pad_to_max_length
+        "padding": str(padding)
     }
 
     ###########################################################################
@@ -118,7 +118,7 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
     )

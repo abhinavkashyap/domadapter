@@ -69,6 +69,11 @@ class DomainAdapter(pl.LightningModule):
 
 
     def configure_optimizers(self):
+        # This was giving an error
+        # RuntimeWarning: Found unsupported keys in the lr scheduler dict: ['reduce_lr_on_plateau']
+        # rank_zero_warn(f"Found unsupported keys in the lr scheduler dict: {extra_keys}", RuntimeWarning)
+        # They were reduce_lr_on_plateau on global steps instead of epochs (link given below)
+        # https://github.com/PyTorchLightning/pytorch-lightning/issues/673#issuecomment-572606187
         learning_rate = self.learning_rate
         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         lr_scheduler = ReduceLROnPlateau(
