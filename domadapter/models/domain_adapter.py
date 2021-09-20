@@ -34,13 +34,22 @@ class DomainAdapter(pl.LightningModule):
         console.print(
             f"[green] Loaded {self.hparams['pretrained_model_name']} model"
         )
-
         # add adapter a new adapter
-        self.model.add_adapter(self.hparams['domain_adapter_name'])
+        self.model.add_adapter(f"domain_adapter_{self.hparams['source_target']}")
         # activate the adapter
-        self.model.train_adapter(self.hparams['domain_adapter_name'])
+        self.model.train_adapter(f"domain_adapter_{self.hparams['source_target']}")
         # object to compute the divergence
         self.criterion = CMD()
+
+        #######################################################################
+        # OPTIMIZER RELATED VARIABLES
+        #######################################################################
+        self.learning_rate = self.hparams.get("learning_rate")
+        self.scheduler_factor = self.hparams.get("scheduler_factor", 0.1)
+        self.scheduler_patience = self.hparams.get("scheduler_patience", 2)
+        self.scheduler_threshold = self.hparams.get("scheduler_threshold", 0.0001)
+        self.scheduler_cooldown = self.hparams.get("scheduler_cooldown", 0)
+        self.scheduler_eps = self.hparams.get("scheduler_eps", 1e-8)
 
 
     def forward(self, input_ids, attention_mask=None):
@@ -51,26 +60,9 @@ class DomainAdapter(pl.LightningModule):
         return hidden_states
 
 
-    # def configure_optimizers(self):
-    #     return torch.optim.AdamW(
-    #         params=self.model.parameters(),
-    #         lr=self.hparams['learning_rate'],
-    #         betas=self.hparams['betas'],
-    #         eps=self.hparams['eps'],
-    #         weight_decay=self.hparams['weight_decay'],
-    #         # amsgrad=self.hparams['amsgrad'], not using this hparam
-    #     )
-
     def configure_optimizers(self):
-
-        optimizer = torch.optim.AdamW(
-            params=self.model.parameters(),
-            lr=self.hparams['learning_rate'],
-            betas=self.hparams['betas'],
-            eps=self.hparams['eps'],
-            weight_decay=self.hparams['weight_decay'],
-            # amsgrad=self.hparams['amsgrad'], not using this hparam
-        )
+        learning_rate = self.learning_rate
+        optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         lr_scheduler = ReduceLROnPlateau(
             optimizer=optimizer,
             mode="min",
@@ -88,7 +80,7 @@ class DomainAdapter(pl.LightningModule):
                 {
                     "scheduler": lr_scheduler,
                     "reduce_lr_on_plateau": True,
-                    "monitor": "train/divergence",
+                    "monitor": "val/divergence",
                     "interval": "epoch",
                 }
             ],
