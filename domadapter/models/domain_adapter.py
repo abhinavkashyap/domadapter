@@ -59,6 +59,14 @@ class DomainAdapter(pl.LightningModule):
         hidden_states = output.hidden_states
         return hidden_states
 
+    def save_adapter(self, location, adapter_name):
+        """Module to save adapter.
+        Args:
+            location str: Location where to save adapter.
+            adapter_name: Name of adapter to be saved.
+        """
+        self.model.save_adapter(location, adapter_name)
+
 
     def configure_optimizers(self):
         learning_rate = self.learning_rate
@@ -95,18 +103,18 @@ class DomainAdapter(pl.LightningModule):
 
         divergence = 0
         for num in range(len(outputs)):
-            src_feature, trg_feature = torch.split(tensor=outputs[num], split_size_or_sections=batch['input_ids'].shape[0]//2, dim=0)
-            divergence += self.criterion.calculate(src_hidden=src_feature, trg_hidden=trg_feature)
+            src_feature, trg_feature = torch.split(tensor=outputs[num], split_size_or_sections=input_ids.shape[0]//2, dim=0)
+            divergence += self.criterion.calculate(source_sample=src_feature, target_sample=trg_feature)
 
         self.log(
-            "train/divergence",
+            "train/loss",
             divergence,
             on_step=True,
             on_epoch=True,
             prog_bar=False,
             logger=True,
         )
-        return {"train/divergence": divergence}
+        return divergence
 
     def validation_step(self, batch, batch_idx):
 
@@ -118,8 +126,8 @@ class DomainAdapter(pl.LightningModule):
 
         divergence = 0
         for num in range(len(outputs)):
-            src_feature, trg_feature = torch.split(tensor=outputs[num], split_size_or_sections=batch['input_ids'].shape[0]//2, dim=0)
-            divergence += self.criterion.calculate(src_hidden=src_feature, trg_hidden=trg_feature)
+            src_feature, trg_feature = torch.split(tensor=outputs[num], split_size_or_sections=input_ids.shape[0]//2, dim=0)
+            divergence += self.criterion.calculate(source_sample=src_feature, target_sample=trg_feature)
 
         # we can comment the logging here
         self.log(
