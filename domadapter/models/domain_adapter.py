@@ -18,9 +18,7 @@ class DomainAdapter(pl.LightningModule):
         """
         super(DomainAdapter, self).__init__()
 
-
         self.save_hyperparameters(hparams)
-
         # config
         self.config = AutoConfig.from_pretrained(self.hparams['pretrained_model_name'])
         # to get the layer wise pre-trained model outputs
@@ -69,7 +67,7 @@ class DomainAdapter(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        # This was giving an error
+        # This was giving a warning
         # RuntimeWarning: Found unsupported keys in the lr scheduler dict: ['reduce_lr_on_plateau']
         # rank_zero_warn(f"Found unsupported keys in the lr scheduler dict: {extra_keys}", RuntimeWarning)
         # They were reduce_lr_on_plateau on global steps instead of epochs (link given below)
