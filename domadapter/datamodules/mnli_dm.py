@@ -251,23 +251,3 @@ class SourceTargetDataset(Dataset):
 
     def __len__(self):
         return min(self.source_df.shape[0], self.target_df.shape[0])
-
-
-if __name__ == "__main__":
-
-    hpams = {
-        "dataset_cache_dir": os.environ["DATASET_CACHE_DIR"],
-        "source_target": "slate_travel",
-        "pretrained_model_name": "bert-base-uncased",
-        "pad_to_max_length": True,
-        "max_seq_length": 128,
-        "batch_size": 4,
-    }
-    data_module = DataModuleSourceTarget(hpams)
-    data_module.prepare_data()
-    # data_module.setup("fit")
-    # train_loader = data_module.train_dataloader()
-    # print(next(iter(train_loader)))
-    data_module.setup("test")
-    test_loader = data_module.test_dataloader()
-    print(next(iter(test_loader)))

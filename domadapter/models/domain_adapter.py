@@ -64,7 +64,7 @@ class DomainAdapter(pl.LightningModule):
         self.model.save_adapter(location, adapter_name)
 
     def configure_optimizers(self):
-        # This was giving a warning
+        # This was giving a warning:
         # RuntimeWarning: Found unsupported keys in the lr scheduler dict: ['reduce_lr_on_plateau']
         # rank_zero_warn(f"Found unsupported keys in the lr scheduler dict: {extra_keys}", RuntimeWarning)
         # They were reduce_lr_on_plateau on global steps instead of epochs (link given below)
@@ -127,7 +127,6 @@ class DomainAdapter(pl.LightningModule):
         return divergence
 
     def validation_step(self, batch, batch_idx):
-
         # concat the source and target data and pass it to the model
         input_ids = torch.cat(
             (batch["source_input_ids"], batch["target_input_ids"]), axis=0
@@ -149,7 +148,6 @@ class DomainAdapter(pl.LightningModule):
                 source_sample=src_feature, target_sample=trg_feature
             )
 
-        # we can comment the logging here
         self.log(
             "val/divergence",
             value=divergence,
@@ -162,7 +160,6 @@ class DomainAdapter(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         mean_divergenence = torch.stack([x["loss"] for x in outputs]).mean()
-
         # this will show the mean div value across epoch
         self.log(
             "val/epoch_divergence",
@@ -172,5 +169,4 @@ class DomainAdapter(pl.LightningModule):
             logger=True,
             on_epoch=True,
         )
-        # need not to return
-        # return {"val/divergence": mean_divergenence}
+
