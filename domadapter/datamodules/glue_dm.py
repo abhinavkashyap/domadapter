@@ -20,6 +20,7 @@ class GlueDM(pl.LightningDataModule):
         pad_to_max_length: bool = True,
         max_seq_length: int = None,
         batch_size: int = 32,
+        num_workers: int = 8
     ):
         """Use the transformer datasets library to download
         GLUE tasks. We should use this later if we decide to do experiments
@@ -58,6 +59,9 @@ class GlueDM(pl.LightningDataModule):
 
         batch_size: int
             Batch size of inputs
+
+        num_workers: int
+            Number of workers to use for dataloaders
         """
         super(GlueDM, self).__init__()
         self.task_to_keys = {
@@ -100,6 +104,7 @@ class GlueDM(pl.LightningDataModule):
         self.val_dataset = None
         self.test_dataset = None
         self.batch_size = batch_size
+        self.num_workers = num_workers
 
     def prepare_data(self):
         """Download the dataset for the task and store it in the
@@ -162,24 +167,27 @@ class GlueDM(pl.LightningDataModule):
 
         elif stage == "test":
             self.test_dataset = (
-                self.datasets["test_matched"] if self.task_name == "mnli" else self.datasets["test"]
+                self.datasets["validation_matched"] if self.task_name == "mnli" else self.datasets["validation"]
             )
         else:
             raise ValueError("stage can be on of [fit, val, test]")
 
     def train_dataloader(self):
         return DataLoader(
-            self.train_dataset, batch_size=self.batch_size, collate_fn=self.data_collator
+            self.train_dataset, batch_size=self.batch_size, collate_fn=self.data_collator,
+            num_workers=self.num_workers
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dataset, batch_size=self.batch_size, collate_fn=self.data_collator
+            self.val_dataset, batch_size=self.batch_size, collate_fn=self.data_collator,
+            num_workers=self.num_workers
         )
 
     def test_dataloader(self):
         return DataLoader(
-            self.test_dataset, batch_size=self.batch_size, collate_fn=self.data_collator
+            self.test_dataset, batch_size=self.batch_size, collate_fn=self.data_collator,
+            num_workers=self.num_workers
         )
 
     def preprocess_function(self, examples):

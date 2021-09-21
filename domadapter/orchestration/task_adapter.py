@@ -12,6 +12,7 @@ import shutil
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
 from domadapter.models.task_adapter import TaskAdapterModel
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 @dataclass
@@ -64,6 +65,10 @@ class DataTrainingArguments:
 
     batch_size: Optional[int] = field(default=32, metadata={"help": "Batch size of data"})
 
+    num_processes: Optional[int] = field(
+        default=8, metadata={"help": "Num of workers for Dataloader"}
+    )
+
     def __post_init__(self):
         self.task_name = self.task_name.lower()
 
@@ -95,7 +100,7 @@ class ModelArguments:
     )
 
     use_fast_tokenizer: bool = field(
-        default=True, metadata={"help": "Whether to use the Fast version of the tokenizer"}
+        default=False, metadata={"help": "Whether to use the Fast version of the tokenizer"}
     )
 
     adapter_name: str = field(
@@ -150,6 +155,10 @@ class TrainerArguments:
 
     gpus: str = field(metadata={"help": "GPU number to train on. Pass this as a string"})
 
+    monitor_metric: str = field(
+        metadata={"help": "This metric will be monitored for storing the best model"}
+    )
+
 
 def main():
     # MultiLingAdapterArguments extends from AdapterArguments.
@@ -190,11 +199,14 @@ def main():
         pad_to_max_length=data_args.pad_to_max_length,
         max_seq_length=data_args.max_seq_length,
         batch_size=data_args.batch_size,
+        num_workers=data_args.num_processes,
     )
     dm.prepare_data()
     dm.setup("fit")
     train_loader = dm.train_dataloader()
     val_loader = dm.val_dataloader()
+    dm.setup("test")
+    test_loader = dm.test_dataloader()
 
     model = TaskAdapterModel(
         adapter_name=model_args.adapter_name,
@@ -222,6 +234,17 @@ def main():
     logger.watch(model, log="gradients", log_freq=10)
     logger.log_hyperparams(hparams)
 
+    callbacks = []
+
+    checkpoints_dir = experiments_dir.joinpath("checkpoints")
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=str(checkpoints_dir),
+        save_top_k=1,
+        mode="max",
+        monitor=f"dev/{trainer_args.monitor_metric}",
+    )
+    callbacks.append(checkpoint_callback)
+
     trainer = pl.Trainer(
         limit_train_batches=trainer_args.train_data_proportion,
         limit_val_batches=trainer_args.validation_data_proportion,
@@ -231,9 +254,11 @@ def main():
         max_epochs=trainer_args.num_epochs,
         gpus=trainer_args.gpus,
         logger=logger,
+        callbacks=callbacks,
     )
 
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+    trainer.test(dataloaders=test_loader)
 
 
 if __name__ == "__main__":

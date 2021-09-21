@@ -343,7 +343,6 @@ class TaskAdapterModel(pl.LightningModule):
         predictions = (
             predictions.argmax(dim=-1) if not self.is_regression else predictions.squeeze()
         )
-        self.log("test/loss", loss.item())
         return {"loss": loss, "predictions": predictions, "labels": labels}
 
     def test_epoch_end(self, outputs):
