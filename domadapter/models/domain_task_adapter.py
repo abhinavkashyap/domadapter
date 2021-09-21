@@ -14,15 +14,15 @@ import numpy as np
 
 import torchmetrics
 
-class DomainTaskAdaptor(pl.LightningModule):
+class DomainTaskAdapter(pl.LightningModule):
 
     def __init__(self, hparams):
-        """DomainTaskAdaptor LightningModule to task adapter after domain adapter training.
+        """DomainTaskAdapter LightningModule to task adapter after domain adapter training.
 
         Args:
             hparams (Optional[Dict[str, Any]], optional): [description]. Defaults to None.
         """
-        super(DomainTaskAdaptor, self).__init__()
+        super(DomainTaskAdapter, self).__init__()
 
         self.save_hyperparameters(hparams)
 
@@ -40,17 +40,34 @@ class DomainTaskAdaptor(pl.LightningModule):
             f"[green] Loaded {self.hparams['pretrained_model_name']} base model"
         )
 
-        with console.status(f"Loading {self.hparams['source_target']} domain adapter", spinner="monkey"):
-            # load domain adapter to PLM
-            self.model.load_adapter(os.path.join(hparams['exp_dir'], "domain_adapter"))
-        # add task adapter to PLM
-        self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
-        # add classification head to task adapter
-        self.model.add_classification_head(f"task_adapter_{self.hparams['source_target']}", num_labels=self.hparams['num_classes'])
-        # stack adapters
-        self.model.active_adapters = Stack(f"domain_adapter_{self.hparams['source_target']}", f"task_adapter_{self.hparams['source_target']}")
-        # Freeze all parameters and train only task adapter
-        self.model.train_adapter([f"task_adapter_{self.hparams['source_target']}"])
+        if self.hparams['mode'] == 'task':
+            with console.status(f"Adding {self.hparams['source_target']} task adapter", spinner="monkey"):
+                # add task adapter to PLM
+                self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
+                # add classification head to task adapter
+                self.model.add_classification_head(f"task_adapter_{self.hparams['source_target']}", num_labels=self.hparams['num_classes'])
+                # Freeze all parameters and train only task adapter
+                self.model.train_adapter(f"task_adapter_{self.hparams['source_target']}")
+                console.print(
+            f"[green] Added {self.hparams['source_target']} task adapter"
+        )
+
+        else:
+            with console.status(f"Loading {self.hparams['source_target']} domain adapter", spinner="monkey"):
+                # load domain adapter to PLM
+                self.model.load_adapter(os.path.join(hparams['exp_dir'], "domain_adapter"))
+            # add task adapter to PLM
+            self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
+            # add classification head to task adapter
+            self.model.add_classification_head(f"task_adapter_{self.hparams['source_target']}", num_labels=self.hparams['num_classes'])
+            # stack adapters
+            self.model.active_adapters = Stack(f"domain_adapter_{self.hparams['source_target']}", f"task_adapter_{self.hparams['source_target']}")
+            # Freeze all parameters and train only task adapter
+            self.model.train_adapter([f"task_adapter_{self.hparams['source_target']}"])
+
+            console.print(
+            f"[green] Added {self.hparams['source_target']} domain and task adapter"
+        )
 
         self.criterion = CrossEntropyLoss()
         self.accuracy = torchmetrics.Accuracy()  # accuracy
@@ -70,7 +87,7 @@ class DomainTaskAdaptor(pl.LightningModule):
 
 
     def forward(self, input_ids, attention_mask):
-        """forward function of DomainTaskAdaptor
+        """forward function of DomainTaskAdapter
 
         Args:
             input_ids (Tensor): input ids tensor
@@ -119,7 +136,7 @@ class DomainTaskAdaptor(pl.LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
-        """training step of DomainTaskAdaptor"""
+        """training step of DomainTaskAdapter"""
         # get the input ids and attention mask
         input_ids, attention_mask = batch["source_input_ids"], batch["source_attention_mask"]
         # get the logits
@@ -159,7 +176,7 @@ class DomainTaskAdaptor(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        """validation step of DomainTaskAdaptor"""
+        """validation step of DomainTaskAdapter"""
         # get the input ids and attention mask for source data
         input_ids, attention_mask = batch["source_input_ids"], batch["source_attention_mask"]
         logits = self(input_ids=input_ids, attention_mask=attention_mask)
@@ -294,7 +311,7 @@ class DomainTaskAdaptor(pl.LightningModule):
         )
 
     def test_step(self, batch, batch_idx):
-        """validation step of DomainTaskAdaptor"""
+        """validation step of DomainTaskAdapter"""
                 # get the input ids and attention mask for source data
         input_ids, attention_mask = batch["source_input_ids"], batch["source_attention_mask"]
         logits = self(input_ids=input_ids, attention_mask=attention_mask)
