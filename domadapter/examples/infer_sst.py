@@ -4,9 +4,9 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 if __name__ == "__main__":
     """
     1. Loads a Pretrained Adapter from the repository
-    2. Activates the adapter 
+    2. Activates the adapter
     3. Predicts the sentiment of the sentence.
-    Refer to https://docs.adapterhub.ml/quickstart.html for the example 
+    Refer to https://docs.adapterhub.ml/quickstart.html for the example
     """
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")

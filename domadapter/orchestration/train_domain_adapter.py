@@ -15,11 +15,14 @@ import shutil
 
 
 @click.command()
-
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
-@click.option("--source-target", type=str, help="Source and target domain in source_target format")
+@click.option(
+    "--source-target", type=str, help="Source and target domain in source_target format"
+)
 @click.option("--pretrained-model-name", type=str, help="PLM to be used from HF")
-@click.option("--padding", type=str, help="Add padding while tokenizing upto max length")
+@click.option(
+    "--padding", type=str, help="Add padding while tokenizing upto max length"
+)
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
@@ -44,7 +47,7 @@ def train_domain_adapter(
     log_freq,
     lr,
     epochs,
-    gpu
+    gpu,
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
@@ -74,7 +77,7 @@ def train_domain_adapter(
         "gpu": gpu,
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
-        "padding": str(padding)
+        "padding": str(padding),
     }
 
     ###########################################################################
@@ -105,10 +108,8 @@ def train_domain_adapter(
         monitor="val/divergence",
     )
     early_stop_callback = EarlyStopping(
-        monitor="val/divergence",
-        patience=2,
-        verbose=False,
-        mode="min")
+        monitor="val/divergence", patience=2, verbose=False, mode="min"
+    )
 
     callbacks = [checkpoint_callback, early_stop_callback]
 
@@ -128,10 +129,12 @@ def train_domain_adapter(
     val_loader = dm.val_dataloader()
     trainer.fit(model, train_loader, val_loader)
 
-    best_ckpt_path=checkpoint_callback.best_model_path
+    best_ckpt_path = checkpoint_callback.best_model_path
     model = DomainAdapter.load_from_checkpoint(best_ckpt_path)
 
-    model.save_adapter(str(checkpoints_dir), f"domain_adapter_{source_target}")  # save adapter after loading model
+    model.save_adapter(
+        str(checkpoints_dir), f"domain_adapter_{source_target}"
+    )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
     hparams_file = exp_dir.joinpath("hparams.json")

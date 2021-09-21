@@ -3,7 +3,7 @@ from typing import Optional
 
 
 def unzip_file(filepath: str, destination_dir: Optional[str] = None):
-    """ Unzips file to the given directory.
+    """Unzips file to the given directory.
 
     Parameters
     ----------

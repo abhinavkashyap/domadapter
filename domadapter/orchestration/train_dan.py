@@ -11,6 +11,7 @@ from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
 
+
 @click.command()
 @click.option("--src-train-file", type=str, help="Src train filename")
 @click.option("--src-dev-file", type=str, help="Src dev filename")
@@ -76,7 +77,7 @@ def train_danformer(
     is_divergence_reduced,
     div_reg_param,
     divergence_reduced,
-    wandb_proj_name
+    wandb_proj_name,
 ):
     src_train_file = pathlib.Path(src_train_file)
     src_dev_file = pathlib.Path(src_dev_file)
@@ -129,7 +130,7 @@ def train_danformer(
         "is_divergence_reduced": is_divergence_reduced,
         "div_reg_param": div_reg_param,
         "divergence_reduced": divergence_reduced,
-        "wandb_proj_name": wandb_proj_name
+        "wandb_proj_name": wandb_proj_name,
     }
 
     ###########################################################################

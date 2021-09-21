@@ -116,9 +116,7 @@ def infer_danformer(experiment_dir, infer_filename, use_infer_branch):
 
     infer = DANInfer(checkpoints_dir=checkpoints_dir, hparams_file=json_file)
 
-    acc = infer.predict(
-        infer_filename=infer_filename, domain=use_infer_branch
-    )
+    acc = infer.predict(infer_filename=infer_filename, domain=use_infer_branch)
     print(f"Accuracy: {infer_filename}: {acc}")
     return acc
 

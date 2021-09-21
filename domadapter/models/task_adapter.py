@@ -188,7 +188,7 @@ class TaskAdapterModel(pl.LightningModule):
         return outputs
 
     def training_step(self, batch, batch_idx):
-        """ Perform training on a single batch of inputs
+        """Perform training on a single batch of inputs
 
         Parameters
         ----------
@@ -215,13 +215,15 @@ class TaskAdapterModel(pl.LightningModule):
         predictions = outputs["logits"]
         labels = batch["labels"]
         predictions = (
-            predictions.argmax(dim=-1) if not self.is_regression else predictions.squeeze()
+            predictions.argmax(dim=-1)
+            if not self.is_regression
+            else predictions.squeeze()
         )
         self.log("train/loss", loss.item())
         return {"loss": loss, "predictions": predictions, "labels": labels}
 
     def training_epoch_end(self, outputs):
-        """ Calculate metrics and do book-keeping at the end of epoch
+        """Calculate metrics and do book-keeping at the end of epoch
 
         Parameters
         ----------
@@ -251,7 +253,7 @@ class TaskAdapterModel(pl.LightningModule):
             self.log(f"train/{key}", train_metric[key])
 
     def validation_step(self, batch, batch_idx):
-        """ Perform validation on a single batch of inputs
+        """Perform validation on a single batch of inputs
 
          Parameters
         ----------
@@ -277,13 +279,15 @@ class TaskAdapterModel(pl.LightningModule):
         predictions = outputs["logits"]
         labels = batch["labels"]
         predictions = (
-            predictions.argmax(dim=-1) if not self.is_regression else predictions.squeeze()
+            predictions.argmax(dim=-1)
+            if not self.is_regression
+            else predictions.squeeze()
         )
         self.log("dev/loss", loss.item())
         return {"loss": loss, "predictions": predictions, "labels": labels}
 
     def validation_epoch_end(self, outputs):
-        """ Calculate metrics and do book-keeping at the end of epoch
+        """Calculate metrics and do book-keeping at the end of epoch
 
         Parameters
         ----------
@@ -312,7 +316,7 @@ class TaskAdapterModel(pl.LightningModule):
             self.log(f"dev/{key}", validation_metric[key])
 
     def test_step(self, batch, batch_idx):
-        """ Perform test on a single batch of inputs
+        """Perform test on a single batch of inputs
 
         Parameters
         ----------
@@ -341,12 +345,14 @@ class TaskAdapterModel(pl.LightningModule):
         predictions = outputs["logits"]
         labels = batch["labels"]
         predictions = (
-            predictions.argmax(dim=-1) if not self.is_regression else predictions.squeeze()
+            predictions.argmax(dim=-1)
+            if not self.is_regression
+            else predictions.squeeze()
         )
         return {"loss": loss, "predictions": predictions, "labels": labels}
 
     def test_epoch_end(self, outputs):
-        """ Calculate metrics and do book-keeping at the end of epoch
+        """Calculate metrics and do book-keeping at the end of epoch
 
         Parameters
         ----------
@@ -388,20 +394,29 @@ class TaskAdapterModel(pl.LightningModule):
         """
         decay_parameters = self.get_parameter_names(self.model, [nn.LayerNorm])
         decay_parameters = [name for name in decay_parameters if "bias" not in name]
-        if hasattr(self.model, "config") and hasattr(self.model.config, "adapter_fusion_models"):
+        if hasattr(self.model, "config") and hasattr(
+            self.model.config, "adapter_fusion_models"
+        ):
             no_decay = [
-                f"adapter_fusion_layer.{n}.value" for n in self.model.config.adapter_fusion_models
+                f"adapter_fusion_layer.{n}.value"
+                for n in self.model.config.adapter_fusion_models
             ]
-            decay_parameters = [name for name in decay_parameters if name not in no_decay]
+            decay_parameters = [
+                name for name in decay_parameters if name not in no_decay
+            ]
 
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in self.model.named_parameters() if n in decay_parameters],
+                "params": [
+                    p for n, p in self.model.named_parameters() if n in decay_parameters
+                ],
                 "weight_decay": self.weight_decay,
             },
             {
                 "params": [
-                    p for n, p in self.model.named_parameters() if n not in decay_parameters
+                    p
+                    for n, p in self.model.named_parameters()
+                    if n not in decay_parameters
                 ],
                 "weight_decay": 0.0,
             },
@@ -432,7 +447,7 @@ class TaskAdapterModel(pl.LightningModule):
 
     @staticmethod
     def _compute_loss(model_outputs):
-        """ Compute the loss from HF model outputs
+        """Compute the loss from HF model outputs
 
         Parameters
         ----------
@@ -445,7 +460,11 @@ class TaskAdapterModel(pl.LightningModule):
             loss
 
         """
-        loss = model_outputs["loss"] if isinstance(model_outputs, dict) else model_outputs[0]
+        loss = (
+            model_outputs["loss"]
+            if isinstance(model_outputs, dict)
+            else model_outputs[0]
+        )
         return loss
 
     def _load_metric(self) -> datasets.Metric:

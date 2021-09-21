@@ -30,9 +30,9 @@ def l2diff(x1, x2):
     """
     standard euclidean norm
     """
-    power = torch.pow(x1-x2,2)
+    power = torch.pow(x1 - x2, 2)
     summed = torch.sum(power)
-    sqrt = summed**(0.5)
+    sqrt = summed ** (0.5)
     return sqrt
 
 
@@ -43,6 +43,7 @@ def moment_diff(sx1, sx2, k):
     ss1 = torch.mean(torch.pow(sx1, k), 0)
     ss2 = torch.mean(torch.pow(sx2, k), 0)
     return l2diff(ss1, ss2)
+
 
 class CMD(BaseDivergence):
     def __init__(

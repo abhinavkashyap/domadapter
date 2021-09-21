@@ -11,7 +11,7 @@ class LinearClassifier(nn.Module):
         output_size: int,
         return_hiddens=True,
     ):
-        """ A MLP that can be added as a classification layer.
+        """A MLP that can be added as a classification layer.
 
         Parameters
         ----------
@@ -86,7 +86,7 @@ class LinearClassifier(nn.Module):
             return None, activation_
 
     def __init_weights(self):
-        """ Initialize weights form uniform distribution
+        """Initialize weights form uniform distribution
 
         Returns
         -------

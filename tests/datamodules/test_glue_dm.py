@@ -6,7 +6,9 @@ import os
 
 TASK_NAMES = ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]
 
-DATASETS_CACHE_DIR = Path(os.environ["DATASET_CACHE_DIR"]).joinpath("test_dataset_cache")
+DATASETS_CACHE_DIR = Path(os.environ["DATASET_CACHE_DIR"]).joinpath(
+    "test_dataset_cache"
+)
 
 
 @fixture
@@ -18,7 +20,11 @@ for task in TASK_NAMES:
 
     @test("prepare_data for {task_name}", tags=["unit", "data", "slow"])
     def _(task_name=task, tokenizer=bert_tokenizer):
-        dm = GlueDM(task_name=task_name, dataset_cache_dir=DATASETS_CACHE_DIR, tokenizer=tokenizer)
+        dm = GlueDM(
+            task_name=task_name,
+            dataset_cache_dir=DATASETS_CACHE_DIR,
+            tokenizer=tokenizer,
+        )
         dm.prepare_data()
 
 
@@ -26,7 +32,11 @@ for task in TASK_NAMES:
 
     @test("setup_data for {task_name}", tags=["unit", "data", "slow"])
     def _(task_name=task, tokenizer=bert_tokenizer):
-        dm = GlueDM(task_name=task_name, dataset_cache_dir=DATASETS_CACHE_DIR, tokenizer=tokenizer)
+        dm = GlueDM(
+            task_name=task_name,
+            dataset_cache_dir=DATASETS_CACHE_DIR,
+            tokenizer=tokenizer,
+        )
         dm.prepare_data()
         dm.setup("fit")
         dm.setup("test")

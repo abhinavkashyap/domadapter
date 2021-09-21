@@ -12,16 +12,18 @@ def rbf_mkmmd(x, y, kernel, device):
         device: the device on which to place the tensors
     """
     xx, yy, zz = torch.mm(x, x.t()), torch.mm(y, y.t()), torch.mm(x, y.t())
-    rx = (xx.diag().unsqueeze(0).expand_as(xx))
-    ry = (yy.diag().unsqueeze(0).expand_as(yy))
+    rx = xx.diag().unsqueeze(0).expand_as(xx)
+    ry = yy.diag().unsqueeze(0).expand_as(yy)
 
-    dxx = rx.t() + rx - 2. * xx  # Used for A in (1)
-    dyy = ry.t() + ry - 2. * yy  # Used for B in (1)
-    dxy = rx.t() + ry - 2. * zz  # Used for C in (1)
+    dxx = rx.t() + rx - 2.0 * xx  # Used for A in (1)
+    dyy = ry.t() + ry - 2.0 * yy  # Used for B in (1)
+    dxy = rx.t() + ry - 2.0 * zz  # Used for C in (1)
 
-    XX, YY, XY = (torch.zeros(xx.shape).to(device),
-                  torch.zeros(xx.shape).to(device),
-                  torch.zeros(xx.shape).to(device))
+    XX, YY, XY = (
+        torch.zeros(xx.shape).to(device),
+        torch.zeros(xx.shape).to(device),
+        torch.zeros(xx.shape).to(device),
+    )
 
     if kernel == "multiscale":
 
@@ -39,7 +41,7 @@ def rbf_mkmmd(x, y, kernel, device):
             YY += torch.exp(-0.5 * dyy / a)
             XY += torch.exp(-0.5 * dxy / a)
 
-    return torch.mean(XX + YY - 2. * XY)
+    return torch.mean(XX + YY - 2.0 * XY)
 
 
 class RBFMKMMD(BaseDivergence):

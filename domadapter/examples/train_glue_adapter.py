@@ -50,7 +50,9 @@ class DataTrainingArguments:
     line
     """
 
-    task_name: Optional[str] = field(default=None, metadata={"help": f"Tasks available {['sst2']}"})
+    task_name: Optional[str] = field(
+        default=None, metadata={"help": f"Tasks available {['sst2']}"}
+    )
 
     max_seq_length: int = field(
         default=128,
@@ -86,7 +88,9 @@ class DataTrainingArguments:
 
     dataset_cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "A cache directory to store the datasets downloaded from HF datasets"},
+        metadata={
+            "help": "A cache directory to store the datasets downloaded from HF datasets"
+        },
     )
 
     def __post_init__(self):
@@ -98,13 +102,21 @@ class DataTrainingArguments:
                 )
 
         elif self.train_file is None or self.validation_file is None:
-            raise ValueError(f"Need either a GLUE task name or a training/validation name")
+            raise ValueError(
+                f"Need either a GLUE task name or a training/validation name"
+            )
 
         else:
             extension = self.train_file.split(".")[-1]
-            assert extension in ["csv", "json"], f"Training file should be a csv or json file"
+            assert extension in [
+                "csv",
+                "json",
+            ], f"Training file should be a csv or json file"
             extension = self.validation_file.split(".")[-1]
-            assert extension in ["csv", "json"], f"Validatio file should be a csv or json file"
+            assert extension in [
+                "csv",
+                "json",
+            ], f"Validatio file should be a csv or json file"
 
 
 @dataclass
@@ -116,25 +128,33 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        metadata={"help": "Name or the path of a pretrained model. Refer to huggingface.co/models"}
+        metadata={
+            "help": "Name or the path of a pretrained model. Refer to huggingface.co/models"
+        }
     )
 
     config_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Pretrained config name or path if not the same as model name"},
+        metadata={
+            "help": "Pretrained config name or path if not the same as model name"
+        },
     )
 
     tokenizer_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Pretrained config name or path if not the same as model name"},
+        metadata={
+            "help": "Pretrained config name or path if not the same as model name"
+        },
     )
 
     cache_dir: Optional[str] = field(
-        default=None, metadata={"help": "Path to store the pretrained models downloaded from s3"}
+        default=None,
+        metadata={"help": "Path to store the pretrained models downloaded from s3"},
     )
 
     use_fast_tokenizer: bool = field(
-        default=True, metadata={"help": "Whether to use the Fast version of the tokenizer"}
+        default=True,
+        metadata={"help": "Whether to use the Fast version of the tokenizer"},
     )
 
 
@@ -142,7 +162,12 @@ def main():
 
     # The parser takes dataclass types as a tuple
     parser = HfArgumentParser(
-        (ModelArguments, DataTrainingArguments, TrainingArguments, MultiLingAdapterArguments)
+        (
+            ModelArguments,
+            DataTrainingArguments,
+            TrainingArguments,
+            MultiLingAdapterArguments,
+        )
     )
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
@@ -155,13 +180,20 @@ def main():
         )
     else:
         # Parse command-line args into instances of the specified dataclass types.
-        model_args, data_args, training_args, adapter_args = parser.parse_args_into_dataclasses()
+        (
+            model_args,
+            data_args,
+            training_args,
+            adapter_args,
+        ) = parser.parse_args_into_dataclasses()
 
     # Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO if is_main_process(training_args.local_rank) else logging.WARN,
+        level=logging.INFO
+        if is_main_process(training_args.local_rank)
+        else logging.WARN,
     )
 
     # Log on each process the small summary:
@@ -180,19 +212,27 @@ def main():
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
     if data_args.task_name:
-        datasets = load_dataset("glue", data_args.task_name, cache_dir=data_args.dataset_cache_dir)
+        datasets = load_dataset(
+            "glue", data_args.task_name, cache_dir=data_args.dataset_cache_dir
+        )
 
     elif data_args.train_file.endswith(".csv"):
         datasets = load_dataset(
             "csv",
-            data_files={"train": data_args.train_file, "validation": data_args.validation_file},
+            data_files={
+                "train": data_args.train_file,
+                "validation": data_args.validation_file,
+            },
             cache_dir=data_args.dataset_cache_dir,
         )
 
     else:
         datasets = load_dataset(
             "csv",
-            data_files={"json": data_args.train_file, "validation": data_args.validation_file},
+            data_files={
+                "json": data_args.train_file,
+                "validation": data_args.validation_file,
+            },
             cache_dir=data_args.dataset_cache_dir,
         )
 
@@ -206,7 +246,10 @@ def main():
             label_list = datasets["train"].features["label"].names
             num_labels = len(label_list)
     else:
-        is_regression = datasets["train"].features["label"].dtype in ["float32", "float64"]
+        is_regression = datasets["train"].features["label"].dtype in [
+            "float32",
+            "float64",
+        ]
         if is_regression:
             num_labels = 1
         else:
@@ -217,14 +260,18 @@ def main():
             num_labels = len(label_list)
 
     config = AutoConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        model_args.config_name
+        if model_args.config_name
+        else model_args.model_name_or_path,
         num_labels=num_labels,
         finetuning_task=data_args.task_name,
         cache_dir=model_args.cache_dir,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.config_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        model_args.config_name
+        if model_args.tokenizer_name
+        else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         use_fast=model_args.use_fast_tokenizer,
     )
@@ -310,7 +357,10 @@ def main():
         non_label_column_names = [
             name for name in datasets["train"].column_names if name != "label"
         ]
-        if "sentence1" in non_label_column_names and "sentence2" in non_label_column_names:
+        if (
+            "sentence1" in non_label_column_names
+            and "sentence2" in non_label_column_names
+        ):
             sentence1_key, sentence2_key = "sentence1", "sentence2"
         else:
             if len(non_label_column_names) >= 2:
@@ -339,7 +389,9 @@ def main():
         # Some have all caps in their config, some don't.
         label_name_to_id = {k.lower(): v for k, v in model.config.label2id.items()}
         if list(sorted(label_name_to_id.keys())) == list(sorted(label_list)):
-            label_to_id = {i: label_name_to_id[label_list[i]] for i in range(num_labels)}
+            label_to_id = {
+                i: label_name_to_id[label_list[i]] for i in range(num_labels)
+            }
         else:
             logger.warn(
                 "Your model seems to have been trained with labels, but they don't match the dataset: ",
@@ -356,7 +408,9 @@ def main():
             else (examples[sentence1_key], examples[sentence2_key])
         )
 
-        result = tokenizer(*args, padding=padding, max_length=max_length, truncation=True)
+        result = tokenizer(
+            *args, padding=padding, max_length=max_length, truncation=True
+        )
 
         if label_to_id is not None and "label" in examples:
             result["label"] = [label_to_id[l] for l in examples["label"]]
@@ -364,17 +418,23 @@ def main():
         return result
 
     datasets = datasets.map(
-        preprocess_function, batched=True, load_from_cache_file=not data_args.overwrite_cache
+        preprocess_function,
+        batched=True,
+        load_from_cache_file=not data_args.overwrite_cache,
     )
 
     train_dataset = datasets["train"]
     eval_dataset = (
-        datasets["validation_matched"] if data_args.task_name == "mnli" else datasets["validation"]
+        datasets["validation_matched"]
+        if data_args.task_name == "mnli"
+        else datasets["validation"]
     )
 
     if data_args.task_name is not None:
         test_dataset = (
-            datasets["test_matched"] if data_args.task_name == "mnli" else datasets["test"]
+            datasets["test_matched"]
+            if data_args.task_name == "mnli"
+            else datasets["test"]
         )
 
     for index in random.sample(range(len(train_dataset)), 3):
@@ -436,7 +496,9 @@ def main():
         for eval_dataset, task in zip(eval_datasets, tasks):
             eval_result = trainer.evaluate(eval_dataset=eval_dataset)
 
-            output_eval_file = os.path.join(training_args.output_dir, f"eval_results_{task}.txt")
+            output_eval_file = os.path.join(
+                training_args.output_dir, f"eval_results_{task}.txt"
+            )
             if trainer.is_world_process_zero():
                 with open(output_eval_file, "w") as writer:
                     logger.info(f"***** Eval results {task} *****")
@@ -461,10 +523,14 @@ def main():
             test_dataset.remove_columns_("label")
             predictions = trainer.predict(test_dataset=test_dataset).predictions
             predictions = (
-                np.squeeze(predictions) if is_regression else np.argmax(predictions, axis=1)
+                np.squeeze(predictions)
+                if is_regression
+                else np.argmax(predictions, axis=1)
             )
 
-            output_test_file = os.path.join(training_args.output_dir, f"test_results_{task}.txt")
+            output_test_file = os.path.join(
+                training_args.output_dir, f"test_results_{task}.txt"
+            )
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:
                     logger.info(f"***** Test results {task} *****")

@@ -20,7 +20,7 @@ class GlueDM(pl.LightningDataModule):
         pad_to_max_length: bool = True,
         max_seq_length: int = None,
         batch_size: int = 32,
-        num_workers: int = 8
+        num_workers: int = 8,
     ):
         """Use the transformer datasets library to download
         GLUE tasks. We should use this later if we decide to do experiments
@@ -121,7 +121,9 @@ class GlueDM(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None):
 
-        self.datasets = load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
+        self.datasets = load_dataset(
+            "glue", self.task_name, cache_dir=self.dataset_cache_dir
+        )
 
         # Setup the labels
         is_regression = self.task_name == "stsb"
@@ -137,7 +139,10 @@ class GlueDM(pl.LightningDataModule):
             self.num_labels = len(self.labels)
             label2id = dict(
                 [
-                    (label.lower(), self.datasets["train"].features["label"].str2int(label))
+                    (
+                        label.lower(),
+                        self.datasets["train"].features["label"].str2int(label),
+                    )
                     for label in self.labels
                 ]
             )
@@ -147,12 +152,15 @@ class GlueDM(pl.LightningDataModule):
 
         # Tokenize the dataset
         self.datasets = self.datasets.map(
-            self.preprocess_function, batched=True, load_from_cache_file=not self.overwrite_cache
+            self.preprocess_function,
+            batched=True,
+            load_from_cache_file=not self.overwrite_cache,
         )
 
         # Return a pytorch tensor when the dataset is indexed like self.datasets[0]
         self.datasets.set_format(
-            type="torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
+            type="torch",
+            columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
         )
 
         # Return the dataset
@@ -167,27 +175,35 @@ class GlueDM(pl.LightningDataModule):
 
         elif stage == "test":
             self.test_dataset = (
-                self.datasets["validation_matched"] if self.task_name == "mnli" else self.datasets["validation"]
+                self.datasets["validation_matched"]
+                if self.task_name == "mnli"
+                else self.datasets["validation"]
             )
         else:
             raise ValueError("stage can be on of [fit, val, test]")
 
     def train_dataloader(self):
         return DataLoader(
-            self.train_dataset, batch_size=self.batch_size, collate_fn=self.data_collator,
-            num_workers=self.num_workers
+            self.train_dataset,
+            batch_size=self.batch_size,
+            collate_fn=self.data_collator,
+            num_workers=self.num_workers,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dataset, batch_size=self.batch_size, collate_fn=self.data_collator,
-            num_workers=self.num_workers
+            self.val_dataset,
+            batch_size=self.batch_size,
+            collate_fn=self.data_collator,
+            num_workers=self.num_workers,
         )
 
     def test_dataloader(self):
         return DataLoader(
-            self.test_dataset, batch_size=self.batch_size, collate_fn=self.data_collator,
-            num_workers=self.num_workers
+            self.test_dataset,
+            batch_size=self.batch_size,
+            collate_fn=self.data_collator,
+            num_workers=self.num_workers,
         )
 
     def preprocess_function(self, examples):

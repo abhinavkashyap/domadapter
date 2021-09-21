@@ -15,8 +15,7 @@ def download():
 
 @download.command()
 def sa():
-    """ Download Sentiment Analysis Dataset for Unsupervised Domain Adaptation
-    """
+    """Download Sentiment Analysis Dataset for Unsupervised Domain Adaptation"""
     downloader = GoogleDriveDownloader()
     dataset_cache = os.environ["DATASET_CACHE_DIR"]
     dataset_cache = Path(dataset_cache)
@@ -39,10 +38,10 @@ def sa():
 
     console.print(f"[green] SA Data Available")
 
+
 @download.command()
 def mnli():
-    """ Download Multi-Genre Natural Language Inference Dataset for Unsupervised Domain Adaptation
-    """
+    """Download Multi-Genre Natural Language Inference Dataset for Unsupervised Domain Adaptation"""
 
     load_dataset("multi_nli")
 

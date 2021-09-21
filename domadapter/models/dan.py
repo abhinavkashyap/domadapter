@@ -60,9 +60,7 @@ class DAN(pl.LightningModule):
             self.bert = BertModel.from_pretrained(
                 self.pretrained_model_name, config=self.bert_config
             )
-        console.print(
-            f"[green] Loaded BERT model from {self.pretrained_model_name}"
-        )
+        console.print(f"[green] Loaded BERT model from {self.pretrained_model_name}")
 
         self.num_layers = len(self.bert.encoder.layer)
         self.bert_hidden_size = self.bert.config.hidden_size

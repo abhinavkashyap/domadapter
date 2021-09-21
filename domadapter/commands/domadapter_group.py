@@ -5,8 +5,7 @@ from art import tprint
 
 @click.group(name="domadapter")
 def domadapter_group():
-    """Root Command
-    """
+    """Root Command"""
     pass
 
 

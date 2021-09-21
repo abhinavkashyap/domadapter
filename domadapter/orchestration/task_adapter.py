@@ -24,7 +24,9 @@ class DataTrainingArguments:
     line
     """
 
-    task_name: Optional[str] = field(default=None, metadata={"help": f"Tasks available {['sst2']}"})
+    task_name: Optional[str] = field(
+        default=None, metadata={"help": f"Tasks available {['sst2']}"}
+    )
 
     max_seq_length: int = field(
         default=128,
@@ -60,10 +62,14 @@ class DataTrainingArguments:
 
     dataset_cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "A cache directory to store the datasets downloaded from HF datasets"},
+        metadata={
+            "help": "A cache directory to store the datasets downloaded from HF datasets"
+        },
     )
 
-    batch_size: Optional[int] = field(default=32, metadata={"help": "Batch size of data"})
+    batch_size: Optional[int] = field(
+        default=32, metadata={"help": "Batch size of data"}
+    )
 
     num_processes: Optional[int] = field(
         default=8, metadata={"help": "Num of workers for Dataloader"}
@@ -82,25 +88,33 @@ class ModelArguments:
     """
 
     model_name: str = field(
-        metadata={"help": "Name or the path of a pretrained model. Refer to huggingface.co/models"}
+        metadata={
+            "help": "Name or the path of a pretrained model. Refer to huggingface.co/models"
+        }
     )
 
     config_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Pretrained config name or path if not the same as model name"},
+        metadata={
+            "help": "Pretrained config name or path if not the same as model name"
+        },
     )
 
     tokenizer_name: Optional[str] = field(
         default=None,
-        metadata={"help": "Pretrained config name or path if not the same as model name"},
+        metadata={
+            "help": "Pretrained config name or path if not the same as model name"
+        },
     )
 
     cache_dir: Optional[str] = field(
-        default=None, metadata={"help": "Path to store the pretrained models downloaded from s3"}
+        default=None,
+        metadata={"help": "Path to store the pretrained models downloaded from s3"},
     )
 
     use_fast_tokenizer: bool = field(
-        default=False, metadata={"help": "Whether to use the Fast version of the tokenizer"}
+        default=False,
+        metadata={"help": "Whether to use the Fast version of the tokenizer"},
     )
 
     adapter_name: str = field(
@@ -115,7 +129,9 @@ class TrainerArguments:
     exp_name: str = field(metadata={"help": "Give a name to your experiment"})
 
     wandb_proj_name: str = field(
-        metadata={"help": "Weights and Biases Project Name. We do not yet support other loggers"}
+        metadata={
+            "help": "Weights and Biases Project Name. We do not yet support other loggers"
+        }
     )
     seed: int = field(metadata={"help": "Seed number useful to reproduce experiments"})
     train_data_proportion: float = field(
@@ -149,11 +165,15 @@ class TrainerArguments:
 
     adam_beta2: float = field(metadata={"help": "Beta2 value for Adam Optimizer"})
 
-    adam_epsilon: float = field(metadata={"help": "Adam Epsilon value for Adam Optimizer"})
+    adam_epsilon: float = field(
+        metadata={"help": "Adam Epsilon value for Adam Optimizer"}
+    )
 
     learning_rate: float = field(metadata={"help": "Learning rate for optimization"})
 
-    gpus: str = field(metadata={"help": "GPU number to train on. Pass this as a string"})
+    gpus: str = field(
+        metadata={"help": "GPU number to train on. Pass this as a string"}
+    )
 
     monitor_metric: str = field(
         metadata={"help": "This metric will be monitored for storing the best model"}
@@ -165,9 +185,19 @@ def main():
     # THe parameters are a union of both classes
     # The Argument Parse parses the arguments into instances of the data classes
     parser = HfArgumentParser(
-        (ModelArguments, DataTrainingArguments, MultiLingAdapterArguments, TrainerArguments)
+        (
+            ModelArguments,
+            DataTrainingArguments,
+            MultiLingAdapterArguments,
+            TrainerArguments,
+        )
     )
-    model_args, data_args, adapter_args, trainer_args = parser.parse_args_into_dataclasses()
+    (
+        model_args,
+        data_args,
+        adapter_args,
+        trainer_args,
+    ) = parser.parse_args_into_dataclasses()
     model_args_dict = asdict(model_args)
     data_args_dict = asdict(data_args)
     adapter_args_dict = asdict(adapter_args)
@@ -176,7 +206,12 @@ def main():
     # Merge all the dictionaries
     # Note: All the dataclasses should have unique keys
 
-    hparams = {**model_args_dict, **data_args_dict, **adapter_args_dict, **trainer_args_dict}
+    hparams = {
+        **model_args_dict,
+        **data_args_dict,
+        **adapter_args_dict,
+        **trainer_args_dict,
+    }
     experiments_dir = Path(os.environ["OUTPUT_DIR"])
     current_exp_dir = experiments_dir.joinpath(trainer_args.exp_name)
 
