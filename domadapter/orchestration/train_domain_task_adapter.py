@@ -3,7 +3,7 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
-from domadapter.models.domain_task_adapter import DomainTaskAdaptor
+from domadapter.models.domain_task_adapter import DomainTaskAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
@@ -28,6 +28,7 @@ from rich.prompt import Confirm
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
+@click.option("--mode", type=str, help="Train task adapter or train domain and task adapter")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
@@ -41,6 +42,7 @@ def train_domain_adapter(
     train_proportion,
     dev_proportion,
     test_proportion,
+    mode,
     num_classes,
     max_seq_length,
     padding,
@@ -72,6 +74,7 @@ def train_domain_adapter(
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
+        "mode": str(mode),
         "seed": seed,
         "learning_rate": lr,
         "epochs": int(epochs),
@@ -87,21 +90,30 @@ def train_domain_adapter(
     dm = DataModuleSourceTarget(hyperparams)
     dm.prepare_data()
 
-    model = DomainTaskAdaptor(hyperparams)
+    model = DomainTaskAdapter(hyperparams)
 
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
-    logger = WandbLogger(
-        save_dir=str(exp_dir),
-        project=f"MNLI_{pretrained_model_name}",
-        job_type="domain task adapter",
-        group=source_target,
-    )
+    if mode == 'task':
+        checkpoints_dir = exp_dir.joinpath("task_adapter_only")
+    #     logger = WandbLogger(
+    #     save_dir=str(exp_dir),
+    #     project=f"MNLI_{pretrained_model_name}",
+    #     job_type="task adapter",
+    #     group=source_target,
+    # )
+    else:
+        checkpoints_dir = exp_dir.joinpath("task_adapter")
+        # logger = WandbLogger(
+        # save_dir=str(exp_dir),
+        # project=f"MNLI_{pretrained_model_name}",
+        # job_type="domain task adapter",
+        # group=source_target,
+    # )
 
-    logger.watch(model, log="gradients", log_freq=log_freq)
+    # logger.watch(model, log="gradients", log_freq=log_freq)
 
-    checkpoints_dir = exp_dir.joinpath("task_adapter")
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
         save_top_k=1,
@@ -121,9 +133,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        gpus=str(gpu),
+        # gpus=str(gpu),
         max_epochs=epochs,
-        logger=logger,
+        # logger=logger,
     )
 
     dm.setup("fit")
@@ -136,14 +148,17 @@ def train_domain_adapter(
     trainer.test(model, test_loader)
 
     best_ckpt_path = checkpoint_callback.best_model_path
-    model = DomainTaskAdaptor.load_from_checkpoint(best_ckpt_path)
+    model = DomainTaskAdapter.load_from_checkpoint(best_ckpt_path)
 
     model.save_adapter(
         str(checkpoints_dir), f"task_adapter_{source_target}"
     )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
-    hparams_file = exp_dir.joinpath("hparams_task_adapter.json")
+    if mode == 'task':
+        hparams_file = exp_dir.joinpath("hparams_task_adapter_only.json")
+    else:
+        hparams_file = exp_dir.joinpath("hparams_task_adapter.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)

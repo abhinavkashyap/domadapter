@@ -6,6 +6,7 @@ DEV_PROP=0.005
 TEST_PROP=0.05
 EXP_DIR=${OUTPUT_DIR}
 SEED=17
+MODE=domain
 BSZ=8
 EPOCHS=2
 MAX_SEQ_LENGTH=128
@@ -25,6 +26,7 @@ for i in "fiction" "travel"; do
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \
+            --mode ${MODE} \
             --gpu ${GPU} \
             --num-classes ${NUM_CLASSES} \
             --max-seq-length ${MAX_SEQ_LENGTH} \
