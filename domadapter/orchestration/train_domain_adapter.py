@@ -100,7 +100,7 @@ def train_domain_adapter(
 
     logger.watch(model, log="gradients", log_freq=log_freq)
 
-    checkpoints_dir = exp_dir.joinpath("checkpoints")
+    checkpoints_dir = exp_dir.joinpath("domain_adapter")
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
         save_top_k=1,
