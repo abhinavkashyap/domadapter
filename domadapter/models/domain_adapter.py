@@ -152,7 +152,7 @@ class DomainAdapter(pl.LightningModule):
             "val/divergence",
             value=divergence,
             on_step=True,
-            on_epoch=True,
+            on_epoch=False,
             prog_bar=False,
             logger=True,
         )
