@@ -52,7 +52,7 @@ class DomainAdapter(pl.LightningModule):
         """Forward pass of the model"""
         # get the model output
         output = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        hidden_states = output.hidden_states
+        hidden_states = output.hidden_states[1:13]
         return hidden_states
 
     def save_adapter(self, location, adapter_name):
@@ -110,6 +110,11 @@ class DomainAdapter(pl.LightningModule):
                 split_size_or_sections=input_ids.shape[0] // 2,
                 dim=0,
             )
+            # src_feature shape: [batch_size, seq_length, hidden_dim]
+            # trg_feature shape: [batch_size, seq_length, hidden_dim]
+            # change their shape to [batch_size, hidden_dim]
+            src_feature = torch.mean(src_feature, dim=1)
+            trg_feature = torch.mean(trg_feature, dim=1)
             divergence += self.criterion.calculate(
                 source_sample=src_feature, target_sample=trg_feature
             )
@@ -133,6 +138,11 @@ class DomainAdapter(pl.LightningModule):
                 split_size_or_sections=input_ids.shape[0] // 2,
                 dim=0,
             )
+            # src_feature shape: [batch_size, seq_length, hidden_dim]
+            # trg_feature shape: [batch_size, seq_length, hidden_dim]
+            # change their shape to [batch_size, hidden_dim]
+            src_feature = torch.mean(src_feature, dim=1)
+            trg_feature = torch.mean(trg_feature, dim=1)
             divergence += self.criterion.calculate(
                 source_sample=src_feature, target_sample=trg_feature
             )
