@@ -52,7 +52,7 @@ class DomainAdapter(pl.LightningModule):
         """Forward pass of the model"""
         # get the model output
         output = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        hidden_states = output.hidden_states[1:13]
+        hidden_states = output.hidden_states[1:len(output.hidden_states)]
         return hidden_states
 
     def save_adapter(self, location, adapter_name):
