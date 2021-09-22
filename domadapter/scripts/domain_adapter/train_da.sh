@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # Train domain adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 
-TRAIN_PROP=0.0003
-DEV_PROP=0.005
+TRAIN_PROP=1
+DEV_PROP=1
 EXP_DIR=${OUTPUT_DIR}
-SEED=17
-BSZ=4
-EPOCHS=2
+SEED=1729
+BSZ=32
+EPOCHS=20
 MAX_SEQ_LENGTH=128
 PADDING=max_length
-LR=0.0001
+LR=1e-04
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_adapter.py"
 
-for i in "fiction" "travel"; do
+for i in "fiction"; do
     for j in "slate"; do
         python ${PYTHON_FILE} \
             --dataset-cache-dir ${DATASET_CACHE_DIR} \

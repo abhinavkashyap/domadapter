@@ -96,11 +96,9 @@ class DomainAdapter(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # concat the source and target data and pass it to the model
-        input_ids = torch.cat(
-            (batch["source_input_ids"], batch["target_input_ids"]), axis=0
-        )
+        input_ids = torch.cat((batch["source_input_ids"], batch["target_input_ids"]), dim=0)
         attention_mask = torch.cat(
-            (batch["source_attention_mask"], batch["target_attention_mask"]), axis=0
+            [batch["source_attention_mask"], batch["target_attention_mask"]], dim=0
         )
 
         outputs = self(input_ids=input_ids, attention_mask=attention_mask)
@@ -116,23 +114,14 @@ class DomainAdapter(pl.LightningModule):
                 source_sample=src_feature, target_sample=trg_feature
             )
 
-        self.log(
-            "train/loss",
-            divergence,
-            on_step=True,
-            on_epoch=True,
-            prog_bar=False,
-            logger=True,
-        )
+        self.log(name="train/loss", value=divergence)
         return divergence
 
     def validation_step(self, batch, batch_idx):
         # concat the source and target data and pass it to the model
-        input_ids = torch.cat(
-            (batch["source_input_ids"], batch["target_input_ids"]), axis=0
-        )
+        input_ids = torch.cat((batch["source_input_ids"], batch["target_input_ids"]), dim=0)
         attention_mask = torch.cat(
-            (batch["source_attention_mask"], batch["target_attention_mask"]), axis=0
+            (batch["source_attention_mask"], batch["target_attention_mask"]), dim=0
         )
 
         outputs = self(input_ids=input_ids, attention_mask=attention_mask)
@@ -148,25 +137,10 @@ class DomainAdapter(pl.LightningModule):
                 source_sample=src_feature, target_sample=trg_feature
             )
 
-        self.log(
-            "val/divergence",
-            value=divergence,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
-            logger=True,
-        )
+        self.log(name="val/divergence", value=divergence)
         return {"loss": divergence}
 
     def validation_epoch_end(self, outputs):
         mean_divergenence = torch.stack([x["loss"] for x in outputs]).mean()
         # this will show the mean div value across epoch
-        self.log(
-            "val/epoch_divergence",
-            value=mean_divergenence,
-            prog_bar=False,
-            on_step=False,
-            logger=True,
-            on_epoch=True,
-        )
-
+        self.log(name="val/divergence", value=mean_divergenence)

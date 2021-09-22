@@ -58,7 +58,7 @@ def train_domain_adapter(
         is_delete = Confirm.ask(f"{exp_dir} already exists... Delete?")
         if is_delete:
             shutil.rmtree(str(exp_dir))
-        exp_dir.mkdir(parents=True)
+            exp_dir.mkdir(parents=True)
     else:
         exp_dir.mkdir(parents=True)
 

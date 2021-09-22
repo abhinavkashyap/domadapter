@@ -11,6 +11,7 @@ from pytorch_lightning import seed_everything
 import json
 from domadapter.console import console
 from rich.prompt import Confirm
+import shutil
 
 
 @click.command()
@@ -59,9 +60,13 @@ def train_domain_adapter(
     exp_dir = exp_dir.joinpath(source_target)
 
     # Ask to delete if experiment exists
-    if not exp_dir.is_dir():
-        print(f"Directory doesn't exist for {exp_dir}. Halting the pipeline...")
-        exit(0)
+    if exp_dir.is_dir():
+        is_delete = Confirm.ask(f"{exp_dir} already exists. Do you want to delete it?")
+        if is_delete:
+            shutil.rmtree(str(exp_dir))
+            console.print(f"[red] Deleted {exp_dir}")
+
+    exp_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -97,22 +102,22 @@ def train_domain_adapter(
     ###########################################################################
     if mode == 'task':
         checkpoints_dir = exp_dir.joinpath("task_adapter_only")
-    #     logger = WandbLogger(
-    #     save_dir=str(exp_dir),
-    #     project=f"MNLI_{pretrained_model_name}",
-    #     job_type="task adapter",
-    #     group=source_target,
-    # )
+        logger = WandbLogger(
+        save_dir=str(exp_dir),
+        project=f"MNLI_{pretrained_model_name}",
+        job_type="task adapter",
+        group=source_target,
+    )
     else:
         checkpoints_dir = exp_dir.joinpath("task_adapter")
-        # logger = WandbLogger(
-        # save_dir=str(exp_dir),
-        # project=f"MNLI_{pretrained_model_name}",
-        # job_type="domain task adapter",
-        # group=source_target,
-    # )
+        logger = WandbLogger(
+        save_dir=str(exp_dir),
+        project=f"MNLI_{pretrained_model_name}",
+        job_type="domain task adapter",
+        group=source_target,
+    )
 
-    # logger.watch(model, log="gradients", log_freq=log_freq)
+    logger.watch(model, log="gradients", log_freq=log_freq)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
@@ -133,9 +138,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
-        # logger=logger,
+        logger=logger,
     )
 
     dm.setup("fit")
