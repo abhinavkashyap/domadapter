@@ -26,7 +26,6 @@ for i in "fiction"; do
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \
-            --mode ${MODE} \
             --gpu ${GPU} \
             --num-classes ${NUM_CLASSES} \
             --max-seq-length ${MAX_SEQ_LENGTH} \

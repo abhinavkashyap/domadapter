@@ -6,10 +6,10 @@ DEV_PROP=1
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
 BSZ=32
-EPOCHS=20
+EPOCHS=10
 MAX_SEQ_LENGTH=128
 PADDING=max_length
-LR=1e-04
+LR=1e-05
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_adapter.py"
 

@@ -33,6 +33,8 @@ import shutil
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
+@click.option("--gradient_clip_norm", type=float, help="Clips the graident if the norm is grater than this value",
+              required=False, default=5.0)
 def train_domain_adapter(
     bsz,
     dataset_cache_dir,
@@ -48,6 +50,7 @@ def train_domain_adapter(
     lr,
     epochs,
     gpu,
+    gradient_clip_norm
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
@@ -78,6 +81,7 @@ def train_domain_adapter(
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
         "padding": str(padding),
+        "gradient_clip_norm": gradient_clip_norm
     }
 
     ###########################################################################
@@ -122,6 +126,7 @@ def train_domain_adapter(
         gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
+        gradient_clip_val=gradient_clip_norm
     )
 
     dm.setup("fit")

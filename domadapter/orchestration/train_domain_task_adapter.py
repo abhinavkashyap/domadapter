@@ -65,8 +65,9 @@ def train_domain_adapter(
         if is_delete:
             shutil.rmtree(str(exp_dir))
             console.print(f"[red] Deleted {exp_dir}")
-
-    exp_dir.mkdir(parents=True)
+            exp_dir.mkdir(parents=True)
+    else:
+        exp_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
