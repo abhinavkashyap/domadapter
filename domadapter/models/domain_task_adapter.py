@@ -70,8 +70,10 @@ class DomainTaskAdapter(pl.LightningModule):
             )
             # stack adapters
             self.model.active_adapters = Stack(
-                f"domain_adapter_{self.hparams['source_target']}",
-                f"task_adapter_{self.hparams['source_target']}",
+                [
+                    f"domain_adapter_{self.hparams['source_target']}",
+                    f"task_adapter_{self.hparams['source_target']}",
+                ]
             )
             # Freeze all parameters and train only task adapter
             self.model.train_adapter([f"task_adapter_{self.hparams['source_target']}"])
