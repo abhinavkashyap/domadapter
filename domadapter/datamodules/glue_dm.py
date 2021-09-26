@@ -5,6 +5,7 @@ from datasets import load_dataset
 from transformers import PreTrainedTokenizer
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
+import multiprocessing
 
 # Pretty prints traceback in the console using `rich`
 install(show_locals=True)
@@ -21,6 +22,7 @@ class GlueDM(pl.LightningDataModule):
         max_seq_length: int = None,
         batch_size: int = 32,
         num_workers: int = 8,
+        multinli_genre: Optional[str] = None,
     ):
         """Use the transformer datasets library to download
         GLUE tasks. We should use this later if we decide to do experiments
@@ -62,6 +64,10 @@ class GlueDM(pl.LightningDataModule):
 
         num_workers: int
             Number of workers to use for dataloaders
+
+        multinli_genre: Optional[str]
+            If given then we will use examples
+            only from that genre for multinli
         """
         super(GlueDM, self).__init__()
         self.task_to_keys = {
@@ -105,6 +111,7 @@ class GlueDM(pl.LightningDataModule):
         self.test_dataset = None
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.multinli_genre = multinli_genre
 
     def prepare_data(self):
         """Download the dataset for the task and store it in the
@@ -117,13 +124,33 @@ class GlueDM(pl.LightningDataModule):
         -------
         None
         """
-        load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
+        if self.task_name != "mnli":
+            load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
+        else:
+            # https://huggingface.co/datasets/multi_nli
+            # using this instead of load_dataset("glue", "mnli") because we need access to the
+            # genre names
+            load_dataset("multi_nli")
 
     def setup(self, stage: Optional[str] = None):
 
-        self.datasets = load_dataset(
-            "glue", self.task_name, cache_dir=self.dataset_cache_dir
-        )
+        if self.task_name != "mnli":
+            self.datasets = load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
+        else:
+            self.datasets = load_dataset("multi_nli")
+
+        if self.task_name == "mnli" and self.multinli_genre is not None:
+            self.datasets = self.datasets.remove_columns(
+                [
+                    "hypothesis_binary_parse",
+                    "hypothesis_parse",
+                    "premise_parse",
+                    "premise_binary_parse",
+                    "promptID",
+                ]
+            )
+            # Filter and obtain examples for a given genre only
+            self.datasets = self._filter_mnli_dataset(self.datasets, self.multinli_genre)
 
         # Setup the labels
         is_regression = self.task_name == "stsb"
@@ -157,20 +184,22 @@ class GlueDM(pl.LightningDataModule):
             load_from_cache_file=not self.overwrite_cache,
         )
 
-        # Return a pytorch tensor when the dataset is indexed like self.datasets[0]
-        self.datasets.set_format(
-            type="torch",
-            columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
-        )
-
         # Return the dataset
 
         if stage == "fit":
             self.train_dataset = self.datasets["train"]
+            self.train_dataset.set_format(
+                type="torch",
+                columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
+            )
             self.val_dataset = (
                 self.datasets["validation_matched"]
                 if self.task_name == "mnli"
                 else self.datasets["validation"]
+            )
+            self.val_dataset.set_format(
+                type="torch",
+                columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
             )
 
         elif stage == "test":
@@ -178,6 +207,10 @@ class GlueDM(pl.LightningDataModule):
                 self.datasets["validation_matched"]
                 if self.task_name == "mnli"
                 else self.datasets["validation"]
+            )
+            self.test_dataset.set_format(
+                type="torch",
+                columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
             )
         else:
             raise ValueError("stage can be on of [fit, val, test]")
@@ -232,3 +265,9 @@ class GlueDM(pl.LightningDataModule):
 
         """
         return self.num_labels
+
+    def _filter_mnli_dataset(self, dataset, genre: str):
+        new_dataset = dataset.filter(
+            lambda example: example["genre"] == genre, num_proc=self.num_workers
+        )
+        return new_dataset

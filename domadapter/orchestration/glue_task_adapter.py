@@ -11,7 +11,7 @@ from rich.prompt import Confirm
 import shutil
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
-from domadapter.models.task_adapter import TaskAdapterModel
+from domadapter.models.glue_task_adapter import TaskAdapterModel
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 
