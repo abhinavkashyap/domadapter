@@ -47,8 +47,8 @@ def prepare_mnli():
                 # train dataset taken from train by sampling 90% samples for train
                 # validation dataset taken from train by sampling 10% samples for dev
 
-                source_dataset = source_dataset.train_test_split(test_size=0.1)
-                target_dataset = target_dataset.train_test_split(test_size=0.1)
+                source_dataset = source_dataset.train_test_split(test_size=0.1, seed=1729)
+                target_dataset = target_dataset.train_test_split(test_size=0.1, seed=1729)
 
                 target_dataset_train = target_dataset["train"].remove_columns(
                     ["label"]
