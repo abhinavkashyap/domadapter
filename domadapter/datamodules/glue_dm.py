@@ -6,6 +6,7 @@ from transformers import PreTrainedTokenizer
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 import multiprocessing
+import datasets
 
 # Pretty prints traceback in the console using `rich`
 install(show_locals=True)
@@ -23,6 +24,8 @@ class GlueDM(pl.LightningDataModule):
         batch_size: int = 32,
         num_workers: int = 8,
         multinli_genre: Optional[str] = None,
+        sample_proportion: Optional[float] = 1.0,
+        sample_seed: Optional[int] = 1729,
     ):
         """Use the transformer datasets library to download
         GLUE tasks. We should use this later if we decide to do experiments
@@ -68,6 +71,17 @@ class GlueDM(pl.LightningDataModule):
         multinli_genre: Optional[str]
             If given then we will use examples
             only from that genre for multinli
+
+        sample_proportion: Optional[float]
+            If propvided should be a number between 0.0 and 1.0
+            Sample a proportion of the train dataset
+            Useful for simulating low resource scenarios.
+            We do not sample dev and test datasets.
+            Note: This is not used to run small sample training
+            Set the appropriate flags and proportions in the pl.Trainer
+
+        sample_seed: Optional[int]
+            Seed used for sampling dataset
         """
         super(GlueDM, self).__init__()
         self.task_to_keys = {
@@ -112,6 +126,12 @@ class GlueDM(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.multinli_genre = multinli_genre
+        self.sample_proportion = sample_proportion
+        self.sample_seed = sample_seed
+
+        assert (
+            0.0 < self.sample_proportion <= 1.0
+        ), f"Sample Proportion should be between 0.0 and 1.0"
 
     def prepare_data(self):
         """Download the dataset for the task and store it in the
@@ -124,33 +144,13 @@ class GlueDM(pl.LightningDataModule):
         -------
         None
         """
-        if self.task_name != "mnli":
-            load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
-        else:
-            # https://huggingface.co/datasets/multi_nli
-            # using this instead of load_dataset("glue", "mnli") because we need access to the
-            # genre names
-            load_dataset("multi_nli")
+        _ = self._load_dataset()
 
     def setup(self, stage: Optional[str] = None):
 
-        if self.task_name != "mnli":
-            self.datasets = load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
-        else:
-            self.datasets = load_dataset("multi_nli")
+        self.datasets = self._load_dataset()
 
-        if self.task_name == "mnli" and self.multinli_genre is not None:
-            self.datasets = self.datasets.remove_columns(
-                [
-                    "hypothesis_binary_parse",
-                    "hypothesis_parse",
-                    "premise_parse",
-                    "premise_binary_parse",
-                    "promptID",
-                ]
-            )
-            # Filter and obtain examples for a given genre only
-            self.datasets = self._filter_mnli_dataset(self.datasets, self.multinli_genre)
+        self.datasets = self._filter_dataset(self.datasets)
 
         # Setup the labels
         is_regression = self.task_name == "stsb"
@@ -188,6 +188,8 @@ class GlueDM(pl.LightningDataModule):
 
         if stage == "fit":
             self.train_dataset = self.datasets["train"]
+            self.train_dataset = self._sample_dataset(self.train_dataset)
+
             self.train_dataset.set_format(
                 type="torch",
                 columns=["input_ids", "token_type_ids", "attention_mask", "labels"],
@@ -266,8 +268,66 @@ class GlueDM(pl.LightningDataModule):
         """
         return self.num_labels
 
-    def _filter_mnli_dataset(self, dataset, genre: str):
-        new_dataset = dataset.filter(
-            lambda example: example["genre"] == genre, num_proc=self.num_workers
-        )
-        return new_dataset
+    def _filter_dataset(self, dataset):
+        # Select examples if multinli_genre is mentioned
+        if self.task_name == "mnli" and self.multinli_genre is not None:
+            datasets_ = self.datasets.remove_columns(
+                [
+                    "hypothesis_binary_parse",
+                    "hypothesis_parse",
+                    "premise_parse",
+                    "premise_binary_parse",
+                    "promptID",
+                ]
+            )
+
+            new_dataset = datasets_.filter(
+                lambda example: example["genre"] == self.multinli_genre, num_proc=self.num_workers
+            )
+            return new_dataset
+        else:
+            return dataset
+
+    def _sample_dataset(self, dataset):
+        """
+
+        Parameters
+        ----------
+        dataset: datasets.Dataset
+            Sample a HF Dataset according to sample proportion
+
+        Returns
+        -------
+        datasets.Dataset
+            A sampled dataset
+
+        """
+        if self.sample_proportion == 1.0:
+            return dataset
+        else:
+            dataset_dict = dataset.train_test_split(
+                train_size=self.sample_proportion,
+                test_size=1 - self.sample_proportion,
+                seed=self.sample_seed,
+            )
+            # Return only the train proportion
+            # Ignore the "test" proportion
+            return dataset_dict["train"]
+
+    def _load_dataset(self) -> datasets.Dataset:
+        """
+
+        Returns
+        -------
+        datasets.Dataset
+            Loads dataset from HF hub and returns it
+        """
+        if self.task_name != "mnli":
+            dataset = load_dataset("glue", self.task_name, cache_dir=self.dataset_cache_dir)
+        else:
+            # https://huggingface.co/datasets/multi_nli
+            # using this instead of load_dataset("glue", "mnli") because we need access to the
+            # genre names
+            dataset = load_dataset("multi_nli")
+
+        return dataset

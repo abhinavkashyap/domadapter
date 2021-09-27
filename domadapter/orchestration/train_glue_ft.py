@@ -21,6 +21,12 @@ class TrainGlueFTDataArguments(DataTrainingArguments):
         default="fiction",
         metadata={"help": "A MNLI Genre to finetune the model on"}
     )
+    sample_proportion: Optional[float] = field(
+        default=1.0,
+        metadata={"help": "Provide a number between 0.0 and 1.0 which indicates "
+                          "the proportion sampled from training dataset. Useful "
+                          "for simulating low resource scenarios"}
+    )
 
 
 def main():
@@ -70,6 +76,7 @@ def main():
         batch_size=data_args.batch_size,
         num_workers=data_args.num_processes,
         multinli_genre=data_args.mnli_genre,
+        sample_proportion=data_args.sample_proportion
     )
 
     dm.prepare_data()

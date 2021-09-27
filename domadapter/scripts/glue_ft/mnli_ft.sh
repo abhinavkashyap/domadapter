@@ -8,7 +8,7 @@ MODEL_NAME="bert-base-uncased"
 BSZ=32
 EXPERIMENT_NAME="[MNLI_FT]"
 WANDB_PROJ_NAME="MNLI_${MODEL_NAME}"
-SEEDS=(1729 100 1000)
+SEEDS=(1729)
 TRAIN_PROPORTION=1.0
 VALIDATION_PROPORTION=1.0
 TEST_PROPORTION=1.0
@@ -22,6 +22,7 @@ GPUS="0"
 NUM_PROCESSES=32
 MONITOR_METRIC="accuracy"
 MNLI_GENRE="travel"
+SAMPLE_PROPORTION=0.9
 
 for seed in ${SEEDS[@]};
 do
@@ -34,7 +35,7 @@ do
     --batch_size ${BSZ} \
     --dataset_cache_dir ${DATASET_CACHE_DIR} \
     --cache_dir ${PT_MODELS_CACHE_DIR} \
-    --exp_name ${EXPERIMENT_NAME}_${seed} \
+    --exp_name ${EXPERIMENT_NAME}_${seed}_${SAMPLE_PROPORTION}sample \
     --wandb_proj_name ${WANDB_PROJ_NAME} \
     --seed ${seed} \
     --train_data_proportion ${TRAIN_PROPORTION} \
@@ -49,5 +50,6 @@ do
     --gpus ${GPUS} \
     --num_processes ${NUM_PROCESSES} \
     --monitor_metric ${MONITOR_METRIC} \
-    --mnli_genre ${MNLI_GENRE}
+    --mnli_genre ${MNLI_GENRE} \
+    --sample_proportion ${SAMPLE_PROPORTION}
 done
