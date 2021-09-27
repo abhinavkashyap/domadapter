@@ -96,7 +96,7 @@ class DomainAdapter(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # concat the source and target data and pass it to the model
-        input_ids = torch.cat((batch["source_input_ids"], batch["target_input_ids"]), dim=0)
+        input_ids = torch.cat([batch["source_input_ids"], batch["target_input_ids"]], dim=0)
         attention_mask = torch.cat(
             [batch["source_attention_mask"], batch["target_attention_mask"]], dim=0
         )
