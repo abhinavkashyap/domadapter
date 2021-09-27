@@ -96,8 +96,8 @@ def main():
         name=str(trainer_args.exp_name),
         save_dir=str(current_exp_dir),
         project=trainer_args.wandb_proj_name,
-        group=f"{data_args.mnli_genre}",
-        job_type="fine-tune"
+        job_type=f"{data_args.mnli_genre}",
+        group="fine-tune"
     )
 
     logger.watch(model, log="gradients", log_freq=10)
