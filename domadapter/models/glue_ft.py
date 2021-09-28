@@ -6,28 +6,14 @@ from transformers import PretrainedConfig
 from transformers import AutoModelForSequenceClassification
 from transformers import PreTrainedModel
 import torch.optim as optim
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from datasets import load_metric
 import datasets
 import numpy as np
 
 
 class GlueFT(pl.LightningModule):
-    def __init__(
-        self,
-        model_name: str,
-        task_name: str,
-        num_labels: int,
-        cache_dir: str,
-        tokenizer: PreTrainedTokenizer,
-        id2label: Dict[int, str],
-        adam_beta1: float,
-        adam_beta2: float,
-        adam_epsilon: float,
-        learning_rate: float,
-        weight_decay: Optional[float] = 0.0,
-    ):
-        """Finetunes a pretrained language model on glue task
+    """Finetunes a pretrained language model on glue task
 
         Parameters
         ----------
@@ -44,9 +30,6 @@ class GlueFT(pl.LightningModule):
             Directory sotres the pretrained language models downloaded from
             Huggingface
 
-        tokenizer: PreTrainedTokenizer
-            A pretrained tokenizer from the transformer library
-
         id2label: Dict[int, str]
             A mapping from label id to string
 
@@ -62,19 +45,23 @@ class GlueFT(pl.LightningModule):
         weight_decay: Optional[float]
             Weight decay for Adam Optimizer if we apply any.
 
-        """
+    """
+    def __init__(
+        self,
+        hparams: Dict[str, Any]
+    ):
         super(GlueFT, self).__init__()
-        self.model_name = model_name
-        self.task_name = task_name
-        self.num_labels = num_labels
-        self.pt_cache_dir = cache_dir
-        self.tokenizer = tokenizer
-        self.id2label = id2label
-        self.adam_beta1 = adam_beta1
-        self.adam_beta2 = adam_beta2
-        self.adam_epsilon = adam_epsilon
-        self.learning_rate = learning_rate
-        self.weight_decay = weight_decay
+        self.save_hyperparameters(hparams)
+        self.model_name = hparams["model_name"]
+        self.task_name = hparams["task_name"]
+        self.num_labels = hparams["num_labels"]
+        self.pt_cache_dir = hparams["cache_dir"]
+        self.id2label = hparams["id2label"]
+        self.adam_beta1 = hparams["adam_beta1"]
+        self.adam_beta2 = hparams["adam_beta2"]
+        self.adam_epsilon = hparams["adam_epsilon"]
+        self.learning_rate = hparams["learning_rate"]
+        self.weight_decay = hparams.get("weight_decay", 0.0)
 
         self.is_regression = self.task_name == "stsb"
 

@@ -1,8 +1,8 @@
 import pytorch_lightning as pl
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from rich.traceback import install
 from datasets import load_dataset
-from transformers import PreTrainedTokenizer
+from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
 from transformers import default_data_collator
 import multiprocessing
@@ -13,76 +13,66 @@ install(show_locals=True)
 
 
 class GlueDM(pl.LightningDataModule):
+    """Use the transformer datasets library to download
+            GLUE tasks. We should use this later if we decide to do experiments
+            on 10% data as used by the paper https://aclanthology.org/2021.acl-long.172/
+
+            Parameters
+            ----------
+            task_name: str
+                GLUE task name. One of
+                ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]
+
+            dataset_cache_dir: str
+                Folder name stores the GLUE dataset downloaded from the web.
+                If downloaded already, use it from the directory
+                If `overwrite_cache` is True, then download every time and ignore
+                any downloaded versions
+
+            tokenizer_name: str
+                A pretrained tokenizer name from the HF library
+
+            overwrite_cache: bool
+                Download the dataset ignoring any downloaded versions?
+
+            pad_to_max_length: bool
+                Sets padding to True for the  hugging face tokenizer
+                https://huggingface.co/transformers/internal/tokenization_utils.html
+                Sets the padding to the longest sequence in the batch
+
+            max_seq_length: int
+                Controls the max_length parameter of the hugging face tokenizer
+                Controls the maximum length to use by one of the truncation/padding parameters.
+                If left unset or set to None, this will use the predefined model maximum length if a
+                maximum length is required by one of the truncation/padding parameters. If the model
+                has no specific maximum input length (like XLNet) truncation/padding to a maximum length
+                will be deactivated.
+
+            batch_size: int
+                Batch size of inputs
+
+            num_workers: int
+                Number of workers to use for dataloaders
+
+            multinli_genre: Optional[str]
+                If given then we will use examples
+                only from that genre for multinli
+
+            sample_proportion: Optional[float]
+                If propvided should be a number between 0.0 and 1.0
+                Sample a proportion of the train dataset
+                Useful for simulating low resource scenarios.
+                We do not sample dev and test datasets.
+                Note: This is not used to run small sample training
+                Set the appropriate flags and proportions in the pl.Trainer
+
+            sample_seed: Optional[int]
+                Seed used for sampling dataset
+            """
     def __init__(
         self,
-        task_name: str,
-        dataset_cache_dir: str,
-        tokenizer: PreTrainedTokenizer,
-        overwrite_cache: bool = False,
-        pad_to_max_length: bool = True,
-        max_seq_length: int = None,
-        batch_size: int = 32,
-        num_workers: int = 8,
-        multinli_genre: Optional[str] = None,
-        sample_proportion: Optional[float] = 1.0,
-        sample_seed: Optional[int] = 1729,
+        hparams: Dict[str, Any]
     ):
-        """Use the transformer datasets library to download
-        GLUE tasks. We should use this later if we decide to do experiments
-        on 10% data as used by the paper https://aclanthology.org/2021.acl-long.172/
-
-        Parameters
-        ----------
-        task_name: str
-            GLUE task name. One of
-            ["cola", "mnli", "mrpc", "qnli", "qqp", "rte", "sst2", "stsb", "wnli"]
-
-        dataset_cache_dir: str
-            Folder name stores the GLUE dataset downloaded from the web.
-            If downloaded already, use it from the directory
-            If `overwrite_cache` is True, then download every time and ignore
-            any downloaded versions
-
-        tokenizer: PreTrainedTokenizer
-            A pretrained tokenizer from the transformer library
-
-        overwrite_cache: bool
-            Download the dataset ignoring any downloaded versions?
-
-        pad_to_max_length: bool
-            Sets padding to True for the  hugging face tokenizer
-            https://huggingface.co/transformers/internal/tokenization_utils.html
-            Sets the padding to the longest sequence in the batch
-
-        max_seq_length: int
-            Controls the max_length parameter of the hugging face tokenizer
-            Controls the maximum length to use by one of the truncation/padding parameters.
-            If left unset or set to None, this will use the predefined model maximum length if a
-            maximum length is required by one of the truncation/padding parameters. If the model
-            has no specific maximum input length (like XLNet) truncation/padding to a maximum length
-            will be deactivated.
-
-        batch_size: int
-            Batch size of inputs
-
-        num_workers: int
-            Number of workers to use for dataloaders
-
-        multinli_genre: Optional[str]
-            If given then we will use examples
-            only from that genre for multinli
-
-        sample_proportion: Optional[float]
-            If propvided should be a number between 0.0 and 1.0
-            Sample a proportion of the train dataset
-            Useful for simulating low resource scenarios.
-            We do not sample dev and test datasets.
-            Note: This is not used to run small sample training
-            Set the appropriate flags and proportions in the pl.Trainer
-
-        sample_seed: Optional[int]
-            Seed used for sampling dataset
-        """
         super(GlueDM, self).__init__()
         self.task_to_keys = {
             "cola": ("sentence", None),
@@ -96,24 +86,36 @@ class GlueDM(pl.LightningDataModule):
             "wnli": ("sentence1", "sentence2"),
         }
 
-        self.task_name = task_name
+        self.task_name = hparams["task_name"]
         assert self.task_name in list(
             self.task_to_keys.keys()
         ), f"task_name should be one of {list(self.task_to_keys)}"
 
-        self.dataset_cache_dir = dataset_cache_dir
-        self.tokenizer = tokenizer
-        self.overwrite_cache = overwrite_cache
-        self.pad_to_max_length = pad_to_max_length
+        self.dataset_cache_dir = hparams["dataset_cache_dir"]
+        self.tokenizer_name = hparams["tokenizer_name"]
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
+        self.overwrite_cache = hparams["overwrite_cache"]
+        self.pad_to_max_length = hparams["pad_to_max_length"]
 
-        if pad_to_max_length is True:
+        if self.pad_to_max_length is True:
             self.data_collator = default_data_collator
             self.padding = "max_length"
-            self.max_seq_length = max_seq_length
+            self.max_seq_length = hparams["max_seq_length"]
         else:
             self.data_collator = None
             self.padding = None
             self.max_seq_length = None
+
+        self.batch_size = hparams["batch_size"]
+        self.num_workers = hparams["num_processes"]
+
+        self.multinli_genre = hparams.get("multinli_genre", None)
+        self.sample_proportion = hparams.get("sample_proportion", 1.0)
+        self.sample_seed = hparams.get("sample_seed", 1729)
+
+        assert (
+                0.0 < self.sample_proportion <= 1.0
+        ), f"Sample Proportion should be between 0.0 and 1.0"
 
         self.datasets = None  # Store the dataset
         self.labels: List[str] = None  # Store the labels used
@@ -123,15 +125,6 @@ class GlueDM(pl.LightningDataModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.multinli_genre = multinli_genre
-        self.sample_proportion = sample_proportion
-        self.sample_seed = sample_seed
-
-        assert (
-            0.0 < self.sample_proportion <= 1.0
-        ), f"Sample Proportion should be between 0.0 and 1.0"
 
     def prepare_data(self):
         """Download the dataset for the task and store it in the

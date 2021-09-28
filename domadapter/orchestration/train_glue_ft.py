@@ -1,7 +1,7 @@
 from dataclasses import field, asdict, dataclass
 from domadapter.datamodules.glue_dm import GlueDM
 from domadapter.utils.arguments import ModelArguments, DataTrainingArguments, TrainerArguments
-from transformers import AutoTokenizer
+import json
 from transformers import HfArgumentParser
 import pytorch_lightning as pl
 from typing import Optional
@@ -62,22 +62,9 @@ def main():
     else:
         current_exp_dir.mkdir(parents=True)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name)
-
     seed_everything(trainer_args.seed)
 
-    dm = GlueDM(
-        task_name=data_args.task_name,
-        dataset_cache_dir=os.environ["DATASET_CACHE_DIR"],
-        tokenizer=tokenizer,
-        overwrite_cache=data_args.overwrite_cache,
-        pad_to_max_length=data_args.pad_to_max_length,
-        max_seq_length=data_args.max_seq_length,
-        batch_size=data_args.batch_size,
-        num_workers=data_args.num_processes,
-        multinli_genre=data_args.mnli_genre,
-        sample_proportion=data_args.sample_proportion
-    )
+    dm = GlueDM(hparams)
 
     dm.prepare_data()
     dm.setup("fit")
@@ -85,19 +72,10 @@ def main():
     val_loader = dm.val_dataloader()
     dm.setup("test")
     test_loader = dm.test_dataloader()
+    hparams["num_labels"] = dm.get_num_labels()
+    hparams["id2label"] = dm.id2label
 
-    model = GlueFT(
-        model_name=model_args.model_name,
-        task_name=data_args.task_name,
-        num_labels=dm.get_num_labels(),
-        cache_dir=model_args.cache_dir,
-        tokenizer=tokenizer,
-        id2label=dm.id2label,
-        adam_beta1=trainer_args.adam_beta1,
-        adam_beta2=trainer_args.adam_beta2,
-        adam_epsilon=trainer_args.adam_epsilon,
-        learning_rate=trainer_args.learning_rate,
-    )
+    model = GlueFT(hparams)
 
     logger = WandbLogger(
         name=str(trainer_args.exp_name),
@@ -135,6 +113,12 @@ def main():
 
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     trainer.test(dataloaders=test_loader)
+
+    hparams_file = current_exp_dir.joinpath("hparams.json")
+
+    with open(hparams_file, "w") as fp:
+        json.dump(hparams, fp)
+
 
 
 if __name__ == "__main__":
