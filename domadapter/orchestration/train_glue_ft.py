@@ -52,7 +52,7 @@ def main():
         **trainer_args_dict,
     }
 
-    experiments_dir = Path(os.environ["OUTPUT_DIR"])
+    experiments_dir = Path(os.environ["OUTPUT_DIR"]).joinpath("mnli_ft", f"{data_args.mnli_genre}")
     current_exp_dir = experiments_dir.joinpath(trainer_args.exp_name)
 
     if current_exp_dir.is_dir():
@@ -112,7 +112,7 @@ def main():
 
     callbacks = []
 
-    checkpoints_dir = experiments_dir.joinpath("checkpoints")
+    checkpoints_dir = current_exp_dir.joinpath("checkpoints")
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
         save_top_k=1,

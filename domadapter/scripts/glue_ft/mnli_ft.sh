@@ -6,50 +6,54 @@ TOKENIZER_NAME="bert-base-uncased"
 MAX_SEQ_LENGTH=128
 MODEL_NAME="bert-base-uncased"
 BSZ=32
-EXPERIMENT_NAME="[MNLI_FT]"
+EXPERIMENT_NAME="[FT]"
 WANDB_PROJ_NAME="MNLI_${MODEL_NAME}"
-SEEDS=(1729)
+SEEDS=(1729 101 1001)
 TRAIN_PROPORTION=1.0
 VALIDATION_PROPORTION=1.0
 TEST_PROPORTION=1.0
 GRADIENT_CLIP_VAL=5.0
-EPOCHS=10
+EPOCHS=5
 ADAM_BETA1=0.99
 ADAM_BETA2=0.999
 ADAM_EPSILON=1e-8
-LEARNING_RATE=1e-5
-GPUS="0"
+LEARNING_RATES=(1e-5 2e-5 3e-5 4e-5 5e-5)
+GPUS=(0 1)
 NUM_PROCESSES=32
 MONITOR_METRIC="accuracy"
 MNLI_GENRE="travel"
 SAMPLE_PROPORTION=0.9
 
+index=0
 for seed in ${SEEDS[@]};
 do
-    python ${SCRIPT_FILE} \
-    --task_name ${GLUE_TASK_NAME} \
-    --tokenizer_name ${TOKENIZER_NAME} \
-    --pad_to_max_length \
-    --max_seq_length ${MAX_SEQ_LENGTH} \
-    --model_name ${MODEL_NAME} \
-    --batch_size ${BSZ} \
-    --dataset_cache_dir ${DATASET_CACHE_DIR} \
-    --cache_dir ${PT_MODELS_CACHE_DIR} \
-    --exp_name ${EXPERIMENT_NAME}_${seed}_${SAMPLE_PROPORTION}sample \
-    --wandb_proj_name ${WANDB_PROJ_NAME} \
-    --seed ${seed} \
-    --train_data_proportion ${TRAIN_PROPORTION} \
-    --validation_data_proportion ${VALIDATION_PROPORTION} \
-    --test_data_proportion ${TEST_PROPORTION} \
-    --gradient_clip_val ${GRADIENT_CLIP_VAL} \
-    --num_epochs ${EPOCHS} \
-    --adam_beta1 ${ADAM_BETA1} \
-    --adam_beta2 ${ADAM_BETA2} \
-    --adam_epsilon ${ADAM_EPSILON} \
-    --learning_rate ${LEARNING_RATE} \
-    --gpus ${GPUS} \
-    --num_processes ${NUM_PROCESSES} \
-    --monitor_metric ${MONITOR_METRIC} \
-    --mnli_genre ${MNLI_GENRE} \
-    --sample_proportion ${SAMPLE_PROPORTION}
+    for lr in ${LEARNING_RATES[@]};
+    do
+        python ${SCRIPT_FILE} \
+        --task_name ${GLUE_TASK_NAME} \
+        --tokenizer_name ${TOKENIZER_NAME} \
+        --pad_to_max_length \
+        --max_seq_length ${MAX_SEQ_LENGTH} \
+        --model_name ${MODEL_NAME} \
+        --batch_size ${BSZ} \
+        --dataset_cache_dir ${DATASET_CACHE_DIR} \
+        --cache_dir ${PT_MODELS_CACHE_DIR} \
+        --exp_name ${EXPERIMENT_NAME}_seed${seed}_lr${lr} \
+        --wandb_proj_name ${WANDB_PROJ_NAME} \
+        --seed ${seed} \
+        --train_data_proportion ${TRAIN_PROPORTION} \
+        --validation_data_proportion ${VALIDATION_PROPORTION} \
+        --test_data_proportion ${TEST_PROPORTION} \
+        --gradient_clip_val ${GRADIENT_CLIP_VAL} \
+        --num_epochs ${EPOCHS} \
+        --adam_beta1 ${ADAM_BETA1} \
+        --adam_beta2 ${ADAM_BETA2} \
+        --adam_epsilon ${ADAM_EPSILON} \
+        --learning_rate ${lr} \
+        --gpus ${GPUS[index]} \
+        --num_processes ${NUM_PROCESSES} \
+        --monitor_metric ${MONITOR_METRIC} \
+        --mnli_genre ${MNLI_GENRE} \
+        --sample_proportion ${SAMPLE_PROPORTION}
+   done
 done
