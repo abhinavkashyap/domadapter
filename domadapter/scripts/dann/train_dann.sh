@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 
-TRAIN_PROP=1.0
-DEV_PROP=1.0
-TEST_PROP=1.0
+TRAIN_PROP=0.001
+DEV_PROP=0.001
+TEST_PROP=0.003
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
-MODE=task
-BSZ=32
-EPOCHS=20
+HIDDEN_SIZE=100
+BSZ=4
+EPOCHS=2
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3
 LR=1e-04
 GPU=0
-PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_task_adapter.py"
+PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_dann.py"
 
 for i in "fiction"; do
     for j in "slate"; do
@@ -27,7 +27,7 @@ for i in "fiction"; do
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \
             --gpu ${GPU} \
-            --mode ${MODE} \
+            --hidden-size ${HIDDEN_SIZE} \
             --num-classes ${NUM_CLASSES} \
             --max-seq-length ${MAX_SEQ_LENGTH} \
             --padding ${PADDING} \

@@ -52,7 +52,7 @@ class DomainAdapter(pl.LightningModule):
         """Forward pass of the model"""
         # get the model output
         output = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        hidden_states = output.hidden_states[1:len(output.hidden_states)]
+        hidden_states = output.hidden_states[1 : len(output.hidden_states)]
         return hidden_states
 
     def save_adapter(self, location, adapter_name):
@@ -96,7 +96,9 @@ class DomainAdapter(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # concat the source and target data and pass it to the model
-        input_ids = torch.cat([batch["source_input_ids"], batch["target_input_ids"]], dim=0)
+        input_ids = torch.cat(
+            [batch["source_input_ids"], batch["target_input_ids"]], dim=0
+        )
         attention_mask = torch.cat(
             [batch["source_attention_mask"], batch["target_attention_mask"]], dim=0
         )
@@ -124,7 +126,9 @@ class DomainAdapter(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # concat the source and target data and pass it to the model
-        input_ids = torch.cat((batch["source_input_ids"], batch["target_input_ids"]), dim=0)
+        input_ids = torch.cat(
+            (batch["source_input_ids"], batch["target_input_ids"]), dim=0
+        )
         attention_mask = torch.cat(
             (batch["source_attention_mask"], batch["target_attention_mask"]), dim=0
         )

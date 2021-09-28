@@ -1,19 +1,6 @@
 from typing import ForwardRef
 import torch
-from torch.autograd import Function
 
-
-class GradientReversal(Function):
-    """gradient reversal layer"""
-    @staticmethod
-    def forward(ctx, x, alpha):
-        ctx.alpha = alpha
-        return x.view_as(x)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        output = grad_output.neg() * ctx.alpha
-        return output, None
 
 def pairwise_distance(x: torch.Tensor, y: torch.Tensor):
     """Calculates the pairwise distance between two tensor
