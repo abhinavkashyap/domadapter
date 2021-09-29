@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 @dataclass
 class TrainGlueFTDataArguments(DataTrainingArguments):
-    mnli_genre: Optional[str] = field(
+    multinli_genre: Optional[str] = field(
         default="fiction",
         metadata={"help": "A MNLI Genre to finetune the model on"}
     )
@@ -52,8 +52,9 @@ def main():
         **trainer_args_dict,
     }
 
-    experiments_dir = Path(os.environ["OUTPUT_DIR"]).joinpath("mnli_ft", f"{data_args.mnli_genre}")
+    experiments_dir = Path(os.environ["OUTPUT_DIR"]).joinpath("mnli_ft", f"{data_args.multinli_genre}")
     current_exp_dir = experiments_dir.joinpath(trainer_args.exp_name)
+    wandb_dir = current_exp_dir.joinpath("wandb")
 
     if current_exp_dir.is_dir():
         is_delete = Confirm.ask(f"{current_exp_dir} exists. Delete?")
@@ -61,6 +62,9 @@ def main():
             shutil.rmtree(str(current_exp_dir))
     else:
         current_exp_dir.mkdir(parents=True)
+
+    # create the wandb directory to save the logs from weights and biases
+    wandb_dir.mkdir(parents=True)
 
     seed_everything(trainer_args.seed)
 
@@ -79,9 +83,9 @@ def main():
 
     logger = WandbLogger(
         name=str(trainer_args.exp_name),
-        save_dir=str(current_exp_dir),
+        save_dir=str(wandb_dir),
         project=trainer_args.wandb_proj_name,
-        job_type=f"{data_args.mnli_genre}",
+        job_type=f"{data_args.multinli_genre}",
         group="fine-tune"
     )
 

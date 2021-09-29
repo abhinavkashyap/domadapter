@@ -80,9 +80,8 @@ class GlueFTInfer:
 
         # The last part of the experiment folder can be considered unique
         exp_name = self.experiments_dir.name
-        experiment_result = {"exp_name": exp_name}
-        experiment_result = {**experiment_result, **test_metric}
-        return experiment_result
+        test_metric["exp_name"] = exp_name
+        return test_metric
 
     def _load_metric(self) -> datasets.Metric:
         """Return a metric for the GLUE task

@@ -6,18 +6,18 @@ TOKENIZER_NAME="bert-base-uncased"
 MAX_SEQ_LENGTH=128
 MODEL_NAME="bert-base-uncased"
 BSZ=32
-EXPERIMENT_NAME="[DEBUG_FT]"
+EXPERIMENT_NAME="[FT]"
 WANDB_PROJ_NAME="MNLI_${MODEL_NAME}"
 SEEDS=(1729)
-TRAIN_PROPORTION=0.1
+TRAIN_PROPORTION=1.0
 VALIDATION_PROPORTION=1.0
 TEST_PROPORTION=1.0
 GRADIENT_CLIP_VAL=5.0
-EPOCHS=1
+EPOCHS=5
 ADAM_BETA1=0.99
 ADAM_BETA2=0.999
 ADAM_EPSILON=1e-8
-LEARNING_RATES=(1e-5)
+LEARNING_RATES=(1e-5 2e-5 3e-5)
 GPUS=(0 1)
 NUM_PROCESSES=32
 MONITOR_METRIC="accuracy"
@@ -53,7 +53,7 @@ do
         --gpus ${GPUS[index]} \
         --num_processes ${NUM_PROCESSES} \
         --monitor_metric ${MONITOR_METRIC} \
-        --mnli_genre ${MNLI_GENRE} \
+        --multinli_genre ${MNLI_GENRE} \
         --sample_proportion ${SAMPLE_PROPORTION}
    done
 done

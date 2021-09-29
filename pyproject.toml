@@ -19,6 +19,7 @@ srsly = "^2.4.1"
 torchmetrics = "^0.5.1"
 requests = "^2.26.0"
 art = "^5.3"
+luigi = "^3.0.3"
 
 [tool.poetry.dev-dependencies]
 ward = "^0.63.0-beta.0"
