@@ -71,6 +71,11 @@ class GlueFT(pl.LightningModule):
         self.validation_metric = self._load_metric()
         self.test_metric = self._load_metric()
 
+        if self.task_name == "mnli":
+            self.train_f1 = self._load_f1_metric()
+            self.validation_f1 = self._load_f1_metric()
+            self.test_f1 = self._load_f1_metric()
+
     def forward(self, batch):
         outputs = self.model(**batch)
         return outputs
@@ -133,9 +138,14 @@ class GlueFT(pl.LightningModule):
             labels = output["labels"]
             loss = output["loss"].cpu().item()
             self.train_metric.add_batch(predictions=predictions, references=labels)
+            if self.task_name == "mnli":
+                self.train_f1.add_batch(predictions=predictions, references=labels)
             losses.append(loss)
 
         train_metric = self.train_metric.compute()
+        if self.task_name == "mnli":
+            train_f1 = self.train_f1.compute(average="macro")
+            train_metric = {**train_metric, **train_f1}
         self.log("train/loss", np.mean(losses))
         for key in train_metric:
             self.log(f"train/{key}", train_metric[key])
@@ -196,9 +206,15 @@ class GlueFT(pl.LightningModule):
             labels = output["labels"]
             loss = output["loss"].cpu().item()
             self.validation_metric.add_batch(predictions=predictions, references=labels)
+            if self.task_name == "mnli":
+                self.validation_f1.add_batch(predictions=predictions, references=labels)
             losses.append(loss)
 
         validation_metric = self.validation_metric.compute()
+        if self.task_name == "mnli":
+            validation_f1 = self.validation_f1.compute(average="macro")
+            validation_metric = {**validation_metric, **validation_f1}
+
         self.log("dev/loss", np.mean(losses))
         for key in validation_metric:
             self.log(f"dev/{key}", validation_metric[key])
@@ -261,9 +277,15 @@ class GlueFT(pl.LightningModule):
             labels = output["labels"]
             loss = output["loss"].cpu().item()
             self.test_metric.add_batch(predictions=predictions, references=labels)
+            if self.task_name == "mnli":
+                self.test_f1.add_batch(predictions=predictions, references=labels)
             losses.append(loss)
 
         test_metric = self.test_metric.compute()
+        if self.task_name == "mnli":
+            test_f1 = self.test_f1.compute(average="macro")
+            test_metric = {**test_metric, **test_f1}
+
         self.log("test/loss", np.mean(losses))
         for key in test_metric:
             self.log(f"test/{key}", test_metric[key])
@@ -373,3 +395,16 @@ class GlueFT(pl.LightningModule):
         # \u2713 is the unicode for ✓
         console.print("[green] Loaded PT model config \u2713")
         return config
+
+    def _load_f1_metric(self) -> datasets.Metric:
+        """ Returns F1 metric from hugging face datasets.
+        This is used by us when the dataset classes might be imbalanced.
+        We sample MNLI datasets and the sampling can create imbalance
+        and it is best to report F1 than `accuracy` which is the usual metric.
+
+        Returns
+        -------
+        datasets.Metric
+
+        """
+        return load_metric("f1")
