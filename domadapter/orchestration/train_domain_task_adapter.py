@@ -26,6 +26,7 @@ import shutil
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
+@click.option("--loss", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
@@ -40,6 +41,7 @@ def train_domain_adapter(
     bsz,
     dataset_cache_dir,
     pretrained_model_name,
+    loss,
     train_proportion,
     dev_proportion,
     test_proportion,
@@ -58,16 +60,22 @@ def train_domain_adapter(
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
     exp_dir = exp_dir.joinpath(source_target)
+    if mode == 'task':
+        checkpoints_dir = exp_dir.joinpath("task_adapter_only")
+    else:
+        checkpoints_dir = exp_dir.joinpath(f"task_adapter_{loss}")
 
     # Ask to delete if experiment exists
-    if exp_dir.is_dir():
-        is_delete = Confirm.ask(f"{exp_dir} already exists. Do you want to delete it?")
+    if checkpoints_dir.is_dir():
+        is_delete = Confirm.ask(
+            f"{checkpoints_dir} already exists. Do you want to delete it?"
+        )
         if is_delete:
-            shutil.rmtree(str(exp_dir))
-            console.print(f"[red] Deleted {exp_dir}")
-            exp_dir.mkdir(parents=True)
+            shutil.rmtree(str(checkpoints_dir))
+            console.print(f"[red] Deleted {checkpoints_dir}")
+            checkpoints_dir.mkdir(parents=True)
     else:
-        exp_dir.mkdir(parents=True)
+        checkpoints_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -80,6 +88,7 @@ def train_domain_adapter(
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
+        "loss": str(loss),
         "mode": str(mode),
         "seed": seed,
         "learning_rate": lr,
@@ -101,24 +110,22 @@ def train_domain_adapter(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
-    if mode == 'task':
-        checkpoints_dir = exp_dir.joinpath("task_adapter_only")
-        logger = WandbLogger(
-        save_dir=str(exp_dir),
-        project=f"MNLI_{pretrained_model_name}",
-        job_type="task adapter",
-        group=source_target,
-    )
-    else:
-        checkpoints_dir = exp_dir.joinpath("task_adapter")
-        logger = WandbLogger(
-        save_dir=str(exp_dir),
-        project=f"MNLI_{pretrained_model_name}",
-        job_type="domain task adapter",
-        group=source_target,
-    )
+    # if mode == 'task':
+    #     logger = WandbLogger(
+    #     save_dir=str(exp_dir),
+    #     project=f"MNLI_{pretrained_model_name}",
+    #     job_type="task adapter",
+    #     group=source_target,
+    # )
+    # else:
+    #     logger = WandbLogger(
+    #     save_dir=str(exp_dir),
+    #     project=f"MNLI_{pretrained_model_name}",
+    #     job_type=f"domain task adapter {loss}",
+    #     group=source_target,
+    # )
 
-    logger.watch(model, log="gradients", log_freq=log_freq)
+    # logger.watch(model, log="gradients", log_freq=log_freq)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
@@ -139,9 +146,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        gpus=str(gpu),
+        # gpus=str(gpu),
         max_epochs=epochs,
-        logger=logger,
+        # logger=logger,
     )
 
     dm.setup("fit")
@@ -161,10 +168,7 @@ def train_domain_adapter(
     )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
-    if mode == 'task':
-        hparams_file = exp_dir.joinpath("hparams_task_adapter_only.json")
-    else:
-        hparams_file = exp_dir.joinpath("hparams_task_adapter.json")
+    hparams_file = checkpoints_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)

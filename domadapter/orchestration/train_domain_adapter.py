@@ -25,6 +25,7 @@ import shutil
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
+@click.option("--loss", type=str, help="divergence on which domain adapter is to be trained")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
@@ -39,6 +40,7 @@ def train_domain_adapter(
     bsz,
     dataset_cache_dir,
     pretrained_model_name,
+    loss,
     train_proportion,
     dev_proportion,
     max_seq_length,
@@ -55,15 +57,19 @@ def train_domain_adapter(
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
     exp_dir = exp_dir.joinpath(source_target)
+    checkpoints_dir = exp_dir.joinpath(f"domain_adapter_{loss}")
 
     # Ask to delete if experiment exists
-    if exp_dir.is_dir():
-        is_delete = Confirm.ask(f"{exp_dir} already exists... Delete?")
+    if checkpoints_dir.is_dir():
+        is_delete = Confirm.ask(
+            f"{checkpoints_dir} already exists. Do you want to delete it?"
+        )
         if is_delete:
-            shutil.rmtree(str(exp_dir))
-            exp_dir.mkdir(parents=True)
+            shutil.rmtree(str(checkpoints_dir))
+            console.print(f"[red] Deleted {checkpoints_dir}")
+            checkpoints_dir.mkdir(parents=True)
     else:
-        exp_dir.mkdir(parents=True)
+        checkpoints_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -75,6 +81,7 @@ def train_domain_adapter(
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
         "seed": seed,
+        "loss": str(loss),
         "learning_rate": lr,
         "epochs": int(epochs),
         "gpu": gpu,
@@ -95,16 +102,15 @@ def train_domain_adapter(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
-    logger = WandbLogger(
-        save_dir=str(exp_dir),
-        project=f"MNLI_{pretrained_model_name}",
-        job_type="domain adapter",
-        group=source_target,
-    )
+    # logger = WandbLogger(
+    #     save_dir=str(exp_dir),
+    #     project=f"MNLI_{pretrained_model_name}",
+    #     job_type=f"domain adapter {loss}",
+    #     group=source_target,
+    # )
 
-    logger.watch(model, log="gradients", log_freq=log_freq)
+    # logger.watch(model, log="gradients", log_freq=log_freq)
 
-    checkpoints_dir = exp_dir.joinpath("domain_adapter")
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
         save_top_k=1,
@@ -123,9 +129,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        gpus=str(gpu),
+        # gpus=str(gpu),
         max_epochs=epochs,
-        logger=logger,
+        # logger=logger,
         gradient_clip_val=gradient_clip_norm
     )
 
@@ -142,7 +148,7 @@ def train_domain_adapter(
     )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
-    hparams_file = exp_dir.joinpath("hparams.json")
+    hparams_file = checkpoints_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)

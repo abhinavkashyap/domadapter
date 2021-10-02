@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
+# losses to choose from coral, cmd, mkmmd
 
-TRAIN_PROP=1.0
-DEV_PROP=1.0
-TEST_PROP=1.0
+TRAIN_PROP=0.0001
+DEV_PROP=0.001
+TEST_PROP=0.003
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
-MODE=task
-BSZ=32
-EPOCHS=20
+LOSS=coral
+MODE=domain
+BSZ=4
+EPOCHS=1
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3
@@ -23,6 +25,7 @@ for i in "fiction"; do
             --source-target  "${i}_${j}" \
             --pretrained-model-name "bert-base-uncased" \
             --seed ${SEED} \
+            --loss ${LOSS} \
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \

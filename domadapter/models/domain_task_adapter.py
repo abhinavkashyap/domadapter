@@ -57,10 +57,10 @@ class DomainTaskAdapter(pl.LightningModule):
 
         else:
             with console.status(
-                f"Loading {self.hparams['source_target']} domain adapter", spinner="monkey"
+                f"Loading {self.hparams['source_target']} domain adapter with {self.hparams['loss']} loss", spinner="monkey"
             ):
                 # load domain adapter to PLM
-                self.model.load_adapter(os.path.join(hparams["exp_dir"], "domain_adapter"))
+                self.model.load_adapter(os.path.join(hparams["exp_dir"], f"domain_adapter_{self.hparams['loss']}"))
             # add task adapter to PLM
             self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
             # add classification head to task adapter
@@ -70,10 +70,8 @@ class DomainTaskAdapter(pl.LightningModule):
             )
             # stack adapters
             self.model.active_adapters = Stack(
-                [
                     f"domain_adapter_{self.hparams['source_target']}",
                     f"task_adapter_{self.hparams['source_target']}",
-                ]
             )
             # Freeze all parameters and train only task adapter
             self.model.train_adapter([f"task_adapter_{self.hparams['source_target']}"])
