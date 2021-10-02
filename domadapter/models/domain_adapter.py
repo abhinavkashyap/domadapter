@@ -7,11 +7,13 @@ from domadapter.console import console
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from domadapter.divergences.cmd_divergence import CMD
+from domadapter.divergences.coral_divergence import Coral
+from domadapter.divergences.mkmmd_divergence import MultipleKernelMaximumMeanDiscrepancy, GaussianKernel
 
 
 class DomainAdapter(pl.LightningModule):
     def __init__(self, hparams: Optional[Dict[str, Any]] = None):
-        """Domain Adapter LightningModule to train domain adapter using CMD as divergence.
+        """Domain Adapter LightningModule to train domain adapter using loss as divergence.
         Args:
             hparams (Optional[Dict[str, Any]], optional): [description]. Defaults to None.
         """
@@ -36,7 +38,13 @@ class DomainAdapter(pl.LightningModule):
         # activate the adapter
         self.model.train_adapter(f"domain_adapter_{self.hparams['source_target']}")
         # object to compute the divergence
-        self.criterion = CMD()
+        if self.hparams["loss"] == 'cmd':
+            self.criterion = CMD()
+        elif self.hparams["loss"] == 'coral':
+            self.criterion = Coral()
+        elif self.hparams["loss"] == 'mkmmd':
+            kernels = (GaussianKernel(alpha=0.5), GaussianKernel(alpha=1.), GaussianKernel(alpha=2.))
+            self.criterion = MultipleKernelMaximumMeanDiscrepancy(kernels)
 
         #######################################################################
         # OPTIMIZER RELATED VARIABLES
