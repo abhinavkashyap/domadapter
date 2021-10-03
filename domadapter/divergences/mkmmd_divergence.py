@@ -3,9 +3,10 @@
 from typing import Optional, Sequence
 import torch
 import torch.nn as nn
+from domadapter.divergences.base_divergence import BaseDivergence
 
 
-class MultipleKernelMaximumMeanDiscrepancy(nn.Module):
+class MultipleKernelMaximumMeanDiscrepancy(BaseDivergence):
     r"""The Multiple Kernel Maximum Mean Discrepancy (MK-MMD) used in
     `Learning Transferable Features with Deep Adaptation Networks (ICML 2015) <https://arxiv.org/pdf/1502.02791>`_
     Given source domain :math:`\mathcal{D}_s` of :math:`n_s` labeled points and target domain :math:`\mathcal{D}_t`
@@ -53,18 +54,32 @@ class MultipleKernelMaximumMeanDiscrepancy(nn.Module):
         self.index_matrix = None
         self.linear = linear
 
-    def forward(self, z_s: torch.Tensor, z_t: torch.Tensor) -> torch.Tensor:
-        features = torch.cat([z_s, z_t], dim=0)
-        batch_size = int(z_s.size(0))
-        self.index_matrix = _update_index_matrix(batch_size, self.index_matrix, self.linear).to(z_s.device)
+    def calculate(self, source_sample: torch.Tensor, target_sample: torch.Tensor):
+        """
+        :param source_sample: torch.Tensor
+            batch_size, embedding_dimension
+        :param target_sample: torch.Tensor
+            batch_size, embedding_dimension
+
+        :return: List[float]
+        The divergence between the samples
+
+        """
+        assert source_sample.size() == target_sample.size()
+
+        features = torch.cat([source_sample, target_sample], dim=0)
+        batch_size = int(source_sample.size(0))
+        self.index_matrix = _update_index_matrix(batch_size, self.index_matrix, self.linear).to(source_sample.device)
 
 
         kernel_matrix = sum([kernel(features) for kernel in self.kernels])  # Add up the matrix of each kernel
         # Add 2 / (n-1) to make up for the value on the diagonal
         # to ensure loss is positive in the non-linear version
         loss = (kernel_matrix * self.index_matrix).sum() + 2. / float(batch_size - 1)
-
         return loss
+
+    def __call__(self, source_sample: torch.Tensor, target_sample: torch.Tensor):
+        return self.calculate(source_sample, target_sample)
 
 def _update_index_matrix(batch_size: int, index_matrix: Optional[torch.Tensor] = None,
                          linear: Optional[bool] = True) -> torch.Tensor:

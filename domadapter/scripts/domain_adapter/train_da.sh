@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Train domain adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
-# losses to choose from coral, cmd, mkmmd
+# divergences to choose from coral, cmd, mkmmd
 
 TRAIN_PROP=0.0001
 DEV_PROP=0.001
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
 BSZ=4
-LOSS=coral
-EPOCHS=1
+DIVERGENCE=mkmmd
+EPOCHS=3
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 LR=1e-05
@@ -22,7 +22,7 @@ for i in "fiction"; do
             --source-target  "${i}_${j}" \
             --pretrained-model-name "bert-base-uncased" \
             --seed ${SEED} \
-            --loss ${LOSS} \
+            --divergence ${DIVERGENCE} \
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --gpu ${GPU} \

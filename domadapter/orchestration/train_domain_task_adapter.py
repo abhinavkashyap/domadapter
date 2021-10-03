@@ -26,7 +26,7 @@ import shutil
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--loss", type=str, help="divergence on which trained domain adapter is to be loaded")
+@click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
@@ -41,7 +41,7 @@ def train_domain_adapter(
     bsz,
     dataset_cache_dir,
     pretrained_model_name,
-    loss,
+    divergence,
     train_proportion,
     dev_proportion,
     test_proportion,
@@ -63,7 +63,7 @@ def train_domain_adapter(
     if mode == 'task':
         checkpoints_dir = exp_dir.joinpath("task_adapter_only")
     else:
-        checkpoints_dir = exp_dir.joinpath(f"task_adapter_{loss}")
+        checkpoints_dir = exp_dir.joinpath(f"task_adapter_{divergence}")
 
     # Ask to delete if experiment exists
     if checkpoints_dir.is_dir():
@@ -88,7 +88,7 @@ def train_domain_adapter(
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
-        "loss": str(loss),
+        "loss": str(divergence),
         "mode": str(mode),
         "seed": seed,
         "learning_rate": lr,
