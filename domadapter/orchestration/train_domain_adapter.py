@@ -25,7 +25,7 @@ import shutil
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--loss", type=str, help="divergence on which domain adapter is to be trained")
+@click.option("--divergence", type=str, help="divergence on which domain adapter is to be trained")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
@@ -40,7 +40,7 @@ def train_domain_adapter(
     bsz,
     dataset_cache_dir,
     pretrained_model_name,
-    loss,
+    divergence,
     train_proportion,
     dev_proportion,
     max_seq_length,
@@ -57,7 +57,7 @@ def train_domain_adapter(
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
     exp_dir = exp_dir.joinpath(source_target)
-    checkpoints_dir = exp_dir.joinpath(f"domain_adapter_{loss}")
+    checkpoints_dir = exp_dir.joinpath(f"domain_adapter_{divergence}")
 
     # Ask to delete if experiment exists
     if checkpoints_dir.is_dir():
@@ -81,7 +81,7 @@ def train_domain_adapter(
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
         "seed": seed,
-        "loss": str(loss),
+        "loss": str(divergence),
         "learning_rate": lr,
         "epochs": int(epochs),
         "gpu": gpu,
