@@ -63,11 +63,10 @@ def train_dann(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
-    exp_dir = exp_dir.joinpath(source_target)
-    checkpoints_dir = exp_dir.joinpath("dann")
+    checkpoints_dir = exp_dir.joinpath("checkpoints")
 
     # Ask to delete if experiment exists
-    if checkpoints_dir.is_dir():
+    if exp_dir.is_dir():
         is_delete = Confirm.ask(
             f"{checkpoints_dir} already exists. Do you want to delete it?"
         )
@@ -122,11 +121,11 @@ def train_dann(
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
         save_top_k=1,
-        mode="min",
-        monitor="source_val/loss",
+        mode="max",
+        monitor="val/src_f1",
     )
     early_stop_callback = EarlyStopping(
-        monitor="source_val/loss", patience=2, verbose=False, mode="min"
+        monitor="val/src_f1", patience=2, verbose=False, mode="min"
     )
 
     callbacks = [checkpoint_callback, early_stop_callback]
@@ -152,7 +151,7 @@ def train_dann(
     test_loader = dm.test_dataloader()
     trainer.test(model, test_loader)
 
-    hparams_file = checkpoints_dir.joinpath("hparams.json")
+    hparams_file = exp_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)
