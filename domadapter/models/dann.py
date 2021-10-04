@@ -225,12 +225,11 @@ class DANN(pl.LightningModule):
         loss = class_loss + dom_loss
 
         metrics = {
-            "train/src_accuracy": accuracy,
-            "train/src_f1": f1,
-            "train/src_taskclf_loss": class_loss,
+            "train/accuracy": accuracy,
+            "train/f1": f1,
+            "train/taskclf_loss": class_loss,
             "train/domain_loss": dom_loss,
             "train/loss": loss,
-            "loss": loss,
         }
 
         for key, val in metrics.items():
@@ -316,14 +315,14 @@ class DANN(pl.LightningModule):
             dom_f1 = torch.FloatTensor([0.0]).to(self.device)
 
         metrics = {
-            "val/src_task_loss": src_task_loss,
-            "val/src_loss": src_loss,
-            "val/src_acc": src_acc,
-            "val/src_f1": src_f1,
-            "val/trg_task_loss": trg_task_loss,
-            "val/trg_loss": trg_loss,
-            "val/trg_acc": trg_acc,
-            "val/trg_f1": trg_f1,
+            "source_val/taskclf_loss": src_task_loss,
+            "source_val/loss": src_loss,
+            "source_val/accuracy": src_acc,
+            "source_val/f1": src_f1,
+            "target_val/taskclf_loss": trg_task_loss,
+            "target_val/loss": trg_loss,
+            "target_val/accuracy": trg_acc,
+            "target_val/f1": trg_f1,
             "val/domain_loss": dom_loss,
             "val/domain_acc": dom_acc,
             "val/domain_f1": dom_f1,
@@ -411,14 +410,14 @@ class DANN(pl.LightningModule):
             dom_f1 = torch.FloatTensor([0.0]).to(self.device)
 
         metrics = {
-            "test/src_task_loss": src_task_loss,
-            "test/src_loss": src_loss,
-            "test/src_acc": src_acc,
-            "test/src_f1": src_f1,
-            "test/trg_task_loss": trg_task_loss,
-            "test/trg_loss": trg_loss,
-            "test/trg_acc": trg_acc,
-            "test/trg_f1": trg_f1,
+            "source_test/taskclf_loss": src_task_loss,
+            "source_test/loss": src_loss,
+            "source_test/accuracy": src_acc,
+            "source_test/f1": src_f1,
+            "target_test/taskclf_loss": trg_task_loss,
+            "target_test/loss": trg_loss,
+            "target_test/accuracy": trg_acc,
+            "target_test/f1": trg_f1,
             "test/domain_loss": dom_loss,
             "test/domain_accuracy": dom_acc,
             "test/domain_f1": dom_f1,
