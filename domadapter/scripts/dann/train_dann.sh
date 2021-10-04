@@ -37,7 +37,8 @@ for i in "fiction"; do
                 --log-freq 5 \
                 --epochs ${EPOCHS} \
                 --bsz ${BSZ} \
-                --exp-dir ${EXP_DIR}/${i}_${j}/dann/EXP_lr${LR}
+                --exp-dir ${EXP_DIR}/${i}_${j}/dann/EXP_lr${LR}_constalpha \
+                --dann_alpha 0.08
         done
     done
 done

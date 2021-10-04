@@ -16,13 +16,9 @@ import shutil
 
 @click.command()
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
-@click.option(
-    "--source-target", type=str, help="Source and target domain in source_target format"
-)
+@click.option("--source-target", type=str, help="Source and target domain in source_target format")
 @click.option("--pretrained-model-name", type=str, help="PLM to be used from HF")
-@click.option(
-    "--padding", type=str, help="Add padding while tokenizing upto max length"
-)
+@click.option("--padding", type=str, help="Add padding while tokenizing upto max length")
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option(
     "--num-classes",
@@ -33,15 +29,33 @@ import shutil
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
-@click.option(
-    "--hidden-size", type=str, help="Hidden size of Linear Layer for downsampling"
-)
+@click.option("--hidden-size", type=str, help="Hidden size of Linear Layer for downsampling")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
+@click.option(
+    "--switch_off_adv_train",
+    type=bool,
+    is_flag=True,
+    help="If set, then adversarial training is switched off",
+)
+@click.option(
+    "--is_dynamic_dann_alpha",
+    type=bool,
+    is_flag=True,
+    default=False,
+    help="If set, then sets dann alpha dynamically. Refer to the DANN paper "
+         "on how it is calculated."
+)
+@click.option(
+    "--dann_alpha",
+    type=float,
+    default=None,
+    help="Used in GRL layer as a multiplication factor of gradients",
+)
 def train_dann(
     bsz,
     dataset_cache_dir,
@@ -60,6 +74,9 @@ def train_dann(
     lr,
     epochs,
     gpu,
+    switch_off_adv_train,
+    is_dynamic_dann_alpha,
+    dann_alpha,
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
@@ -67,9 +84,7 @@ def train_dann(
 
     # Ask to delete if experiment exists
     if exp_dir.is_dir():
-        is_delete = Confirm.ask(
-            f"{checkpoints_dir} already exists. Do you want to delete it?"
-        )
+        is_delete = Confirm.ask(f"{checkpoints_dir} already exists. Do you want to delete it?")
         if is_delete:
             shutil.rmtree(str(checkpoints_dir))
             console.print(f"[red] Deleted {checkpoints_dir}")
@@ -96,6 +111,9 @@ def train_dann(
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
         "padding": str(padding),
+        "switch_off_adv_train": switch_off_adv_train,
+        "dann_alpha": dann_alpha,
+        "is_dynamic_dann_alpha": is_dynamic_dann_alpha
     }
 
     ###########################################################################
@@ -124,11 +142,9 @@ def train_dann(
         mode="max",
         monitor="val/src_f1",
     )
-    early_stop_callback = EarlyStopping(
-        monitor="val/src_f1", patience=2, verbose=False, mode="min"
-    )
+    early_stop_callback = EarlyStopping(monitor="val/src_f1", patience=2, verbose=False, mode="min")
 
-    callbacks = [checkpoint_callback, early_stop_callback]
+    callbacks = [checkpoint_callback]
 
     trainer = Trainer(
         limit_train_batches=train_proportion,

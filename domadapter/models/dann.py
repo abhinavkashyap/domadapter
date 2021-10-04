@@ -94,6 +94,9 @@ class DANN(pl.LightningModule):
         self.scheduler_threshold = self.hparams.get("scheduler_threshold", 0.0001)
         self.scheduler_cooldown = self.hparams.get("scheduler_cooldown", 0)
         self.scheduler_eps = self.hparams.get("scheduler_eps", 1e-8)
+        self.switch_off_adv_train = self.hparams.get("switch_off_adv_train", False)
+        self.is_dynamic_dann_alpha = self.hparams.get("is_dynamic_dann_alpha", False)
+        self.dann_alpha = self.hparams.get("dann_alpha")
 
     def forward(self, src_inp_ids, src_attn_mask, trg_inp_ids, trg_attn_mask, alpha):
         """
@@ -135,11 +138,15 @@ class DANN(pl.LightningModule):
         src_taskclf_logits = self.task_classifier(src_features)
         trg_taskclf_logits = self.task_classifier(trg_features)
 
-        src_grl_features = GradientReversal.apply(src_features, alpha)
-        trg_grl_features = GradientReversal.apply(trg_features, alpha)
+        if self.switch_off_adv_train is False:
+            src_grl_features = GradientReversal.apply(src_features, alpha)
+            trg_grl_features = GradientReversal.apply(trg_features, alpha)
 
-        src_domclf_logits = self.domain_classifier(src_grl_features)
-        trg_domclf_logits = self.domain_classifier(trg_grl_features)
+            src_domclf_logits = self.domain_classifier(src_grl_features)
+            trg_domclf_logits = self.domain_classifier(trg_grl_features)
+        else:
+            src_domclf_logits = None
+            trg_domclf_logits = None
 
         return src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits
 
@@ -184,8 +191,12 @@ class DANN(pl.LightningModule):
         start_steps = self.current_epoch * src_inp_ids.shape[0]
         total_steps = self.hparams["epochs"] * src_inp_ids.shape[0]
 
-        p = float(batch_idx + start_steps) / total_steps
-        alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+        if self.is_dynamic_dann_alpha:
+            p = float(batch_idx + start_steps) / total_steps
+            alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+        else:
+            alpha = self.dann_alpha
+            assert alpha is not None, f"Set dynamic_dann_alpha to True or pass dann_alpha"
 
         src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits = self(
             src_inp_ids=src_inp_ids,
@@ -198,15 +209,18 @@ class DANN(pl.LightningModule):
         class_loss = self.task_clf_loss(src_taskclf_logits, labels)
 
         # Domain loss
-        domain_src_labels = torch.zeros(bsz).type(torch.LongTensor).to(self.device)
-        domain_trg_labels = torch.ones(bsz).type(torch.LongTensor).to(self.device)
+        if self.switch_off_adv_train is False:
+            domain_src_labels = torch.zeros(bsz).type(torch.LongTensor).to(self.device)
+            domain_trg_labels = torch.ones(bsz).type(torch.LongTensor).to(self.device)
 
-        src_dom_loss = self.domain_clf_loss(src_domclf_logits, domain_src_labels)
-        trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, domain_trg_labels)
-        dom_loss = src_dom_loss + trg_dom_loss
+            src_dom_loss = self.domain_clf_loss(src_domclf_logits, domain_src_labels)
+            trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, domain_trg_labels)
+            dom_loss = src_dom_loss + trg_dom_loss
+        else:
+            dom_loss = torch.FloatTensor([0.0]).to(self.device)
 
         accuracy = self.train_acc(preds=src_taskclf_logits, target=labels)
-        f1 = self.train_f1(preds=trg_taskclf_logits, target=labels)
+        f1 = self.train_f1(preds=src_taskclf_logits, target=labels)
 
         loss = class_loss + dom_loss
 
@@ -244,8 +258,12 @@ class DANN(pl.LightningModule):
         start_steps = self.current_epoch * src_inp_ids.shape[0]
         total_steps = self.hparams["epochs"] * src_inp_ids.shape[0]
 
-        p = float(batch_idx + start_steps) / total_steps
-        alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+        if self.is_dynamic_dann_alpha:
+            p = float(batch_idx + start_steps) / total_steps
+            alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+        else:
+            alpha = self.dann_alpha
+            assert alpha is not None, f"Set dynamic_dann_alpha to True or pass dann_alpha"
 
         src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits = self(
             src_inp_ids=src_inp_ids,
@@ -258,31 +276,44 @@ class DANN(pl.LightningModule):
         src_task_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
         trg_task_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
 
-        # Domain loss
-        domain_src_labels = torch.zeros(bsz).type(torch.LongTensor).to(self.device)
-        domain_trg_labels = torch.ones(bsz).type(torch.LongTensor).to(self.device)
+        if self.switch_off_adv_train is False:
+            # Domain loss
+            src_dom_labels = torch.zeros(bsz).type(torch.LongTensor).to(self.device)
+            trg_dom_labels = torch.ones(bsz).type(torch.LongTensor).to(self.device)
 
-        src_dom_loss = self.domain_clf_loss(src_domclf_logits, domain_src_labels)
-        trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, domain_trg_labels)
+            src_dom_loss = self.domain_clf_loss(src_domclf_logits, src_dom_labels)
+            trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, trg_dom_labels)
+        else:
+            src_dom_loss = torch.FloatTensor([0.0]).to(self.device)
+            trg_dom_loss = torch.FloatTensor([0.0]).to(self.device)
+
         dom_loss = src_dom_loss + trg_dom_loss
 
         src_loss = src_task_loss + src_dom_loss
         trg_loss = trg_task_loss + trg_dom_loss
 
         src_acc = self.src_dev_acc(preds=src_taskclf_logits, target=src_labels)
-        src_f1 = self.src_dev_f1(preds=src_taskclf_logits, target=trg_labels)
+        src_f1 = self.src_dev_f1(preds=src_taskclf_logits, target=src_labels)
 
         trg_acc = self.trg_dev_acc(preds=trg_taskclf_logits, target=trg_labels)
         trg_f1 = self.trg_dev_f1(preds=trg_taskclf_logits, target=trg_labels)
 
-        src_dom_clf_acc = self.val_dom_clf_acc(preds=src_domclf_logits, target=domain_src_labels)
-        trg_dom_clf_acc = self.val_dom_clf_acc(preds=trg_domclf_logits, target=domain_trg_labels)
+        if self.switch_off_adv_train is False:
+            src_dom_clf_acc = self.val_dom_clf_acc(
+                preds=src_domclf_logits, target=src_dom_labels
+            )
+            trg_dom_clf_acc = self.val_dom_clf_acc(
+                preds=trg_domclf_logits, target=trg_dom_labels
+            )
 
-        src_dom_clf_f1 = self.val_dom_clf_f1(preds=src_domclf_logits, target=domain_src_labels)
-        trg_dom_clf_f1 = self.val_dom_clf_f1(preds=trg_domclf_logits, target=domain_trg_labels)
+            src_dom_clf_f1 = self.val_dom_clf_f1(preds=src_domclf_logits, target=src_dom_labels)
+            trg_dom_clf_f1 = self.val_dom_clf_f1(preds=trg_domclf_logits, target=trg_dom_labels)
 
-        dom_acc = src_dom_clf_acc + trg_dom_clf_acc
-        dom_f1 = src_dom_clf_f1 + trg_dom_clf_f1
+            dom_acc = src_dom_clf_acc + trg_dom_clf_acc
+            dom_f1 = src_dom_clf_f1 + trg_dom_clf_f1
+        else:
+            dom_acc = torch.FloatTensor([0.0]).to(self.device)
+            dom_f1 = torch.FloatTensor([0.0]).to(self.device)
 
         metrics = {
             "val/src_task_loss": src_task_loss,
@@ -323,8 +354,12 @@ class DANN(pl.LightningModule):
         start_steps = self.current_epoch * src_inp_ids.shape[0]
         total_steps = self.hparams["epochs"] * src_inp_ids.shape[0]
 
-        p = float(batch_idx + start_steps) / total_steps
-        alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+        if self.is_dynamic_dann_alpha:
+            p = float(batch_idx + start_steps) / total_steps
+            alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+        else:
+            alpha = self.dann_alpha
+            assert alpha is not None, f"Set dynamic_dann_alpha to True or pass dann_alpha"
 
         src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits = self(
             src_inp_ids=src_inp_ids,
@@ -337,31 +372,43 @@ class DANN(pl.LightningModule):
         src_task_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
         trg_task_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
 
-        # Domain loss
-        domain_src_labels = torch.zeros(bsz).type(torch.LongTensor).to(self.device)
-        domain_trg_labels = torch.ones(bsz).type(torch.LongTensor).to(self.device)
+        if self.switch_off_adv_train is False:
+            # Domain loss
+            src_dom_labels = torch.zeros(bsz).type(torch.LongTensor).to(self.device)
+            trg_dom_labels = torch.ones(bsz).type(torch.LongTensor).to(self.device)
 
-        src_dom_loss = self.domain_clf_loss(src_domclf_logits, domain_src_labels)
-        trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, domain_trg_labels)
+            src_dom_loss = self.domain_clf_loss(src_domclf_logits, src_dom_labels)
+            trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, trg_dom_labels)
+        else:
+            src_dom_loss = torch.FloatTensor([0.0]).to(self.device)
+            trg_dom_loss = torch.FloatTensor([0.0]).to(self.device)
+
         dom_loss = src_dom_loss + trg_dom_loss
 
         src_loss = src_task_loss + src_dom_loss
         trg_loss = trg_task_loss + trg_dom_loss
 
         src_acc = self.src_test_acc(preds=src_taskclf_logits, target=src_labels)
-        src_f1 = self.src_test_f1(preds=src_taskclf_logits, target=trg_labels)
+        src_f1 = self.src_test_f1(preds=src_taskclf_logits, target=src_labels)
 
         trg_acc = self.trg_test_acc(preds=trg_taskclf_logits, target=trg_labels)
         trg_f1 = self.trg_test_f1(preds=trg_taskclf_logits, target=trg_labels)
 
-        src_dom_clf_acc = self.test_dom_clf_acc(preds=src_domclf_logits, target=domain_src_labels)
-        trg_dom_clf_acc = self.test_dom_clf_acc(preds=trg_domclf_logits, target=domain_trg_labels)
+        if self.switch_off_adv_train is False:
+            src_dom_clf_acc = self.test_dom_clf_acc(
+                preds=src_domclf_logits, target=src_dom_labels
+            )
+            trg_dom_clf_acc = self.test_dom_clf_acc(
+                preds=trg_domclf_logits, target=trg_dom_labels
+            )
 
-        src_dom_clf_f1 = self.test_dom_clf_f1(preds=src_domclf_logits, target=domain_src_labels)
-        trg_dom_clf_f1 = self.test_dom_clf_f1(preds=trg_domclf_logits, target=domain_trg_labels)
-
-        dom_acc = src_dom_clf_acc + trg_dom_clf_acc
-        dom_f1 = src_dom_clf_f1 + trg_dom_clf_f1
+            src_dom_clf_f1 = self.test_dom_clf_f1(preds=src_domclf_logits, target=src_dom_labels)
+            trg_dom_clf_f1 = self.test_dom_clf_f1(preds=trg_domclf_logits, target=trg_dom_labels)
+            dom_acc = src_dom_clf_acc + trg_dom_clf_acc
+            dom_f1 = src_dom_clf_f1 + trg_dom_clf_f1
+        else:
+            dom_acc = torch.FloatTensor([0.0]).to(self.device)
+            dom_f1 = torch.FloatTensor([0.0]).to(self.device)
 
         metrics = {
             "test/src_task_loss": src_task_loss,
