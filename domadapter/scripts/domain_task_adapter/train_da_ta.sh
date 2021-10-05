@@ -7,7 +7,7 @@ DEV_PROP=0.001
 TEST_PROP=0.003
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
-LOSS=coral
+DIVERGENCE=coral
 MODE=domain
 BSZ=4
 EPOCHS=1
@@ -25,7 +25,7 @@ for i in "fiction"; do
             --source-target  "${i}_${j}" \
             --pretrained-model-name "bert-base-uncased" \
             --seed ${SEED} \
-            --loss ${LOSS} \
+            --divergence ${DIVERGENCE} \
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \
