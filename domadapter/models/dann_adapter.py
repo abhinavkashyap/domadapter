@@ -168,13 +168,6 @@ class DANNAdapter(pl.LightningModule):
 
         return src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits
 
-    # def save_adapter(self, location, adapter_name):
-    #     """Module to save adapter.
-    #     Args:
-    #         location str: Location where to save adapter.
-    #         adapter_name: Name of adapter to be saved.
-    #     """
-    #     self.model.save_adapter(location, adapter_name)
 
     def configure_optimizers(self):
         # This was giving a warning:
@@ -241,8 +234,8 @@ class DANNAdapter(pl.LightningModule):
 
         # Domain loss
         if self.switch_off_adv_train is False:
-            domain_src_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)  # multiply by 12 for all layers
-            domain_trg_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)  # multiply by 12 for all layers
+            domain_src_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
+            domain_trg_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
 
             src_dom_loss = self.domain_clf_loss(src_domclf_logits, domain_src_labels)
             trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, domain_trg_labels)
@@ -308,8 +301,8 @@ class DANNAdapter(pl.LightningModule):
 
         if self.switch_off_adv_train is False:
             # Domain loss
-            src_dom_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)  # multiply by 12 for all layers
-            trg_dom_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)  # multiply by 12 for all layers
+            src_dom_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
+            trg_dom_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
 
             src_dom_loss = self.domain_clf_loss(src_domclf_logits, src_dom_labels)
             trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, trg_dom_labels)
@@ -404,8 +397,8 @@ class DANNAdapter(pl.LightningModule):
 
         if self.switch_off_adv_train is False:
             # Domain loss
-            src_dom_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)  # multiply by 12 for all layers
-            trg_dom_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)  # multiply by 12 for all layers
+            src_dom_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
+            trg_dom_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
 
             src_dom_loss = self.domain_clf_loss(src_domclf_logits, src_dom_labels)
             trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, trg_dom_labels)
