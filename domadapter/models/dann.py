@@ -155,7 +155,7 @@ class DANN(pl.LightningModule):
         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         lr_scheduler = ReduceLROnPlateau(
             optimizer=optimizer,
-            mode="min",
+            mode="max",
             factor=self.scheduler_factor,
             patience=self.scheduler_patience,
             threshold=self.scheduler_threshold,
@@ -170,7 +170,7 @@ class DANN(pl.LightningModule):
                 {
                     "scheduler": lr_scheduler,
                     "reduce_lr_on_plateau": True,
-                    "monitor": "val/src_f1",
+                    "monitor": "source_val/f1",
                     "interval": "epoch",
                 }
             ],

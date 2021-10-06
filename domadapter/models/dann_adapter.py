@@ -145,7 +145,6 @@ class DANNAdapter(pl.LightningModule):
 
         hidden_states = outputs.hidden_states[1 : len(outputs.hidden_states)]
         hidden_states  = torch.stack(list(hidden_states), dim=0)  # shape of hidden_states = 12 (tuple)
-        hidden_states = torch.mean(hidden_states, dim=2)  # hidden_states shape = [12, 2*B, L, 768]
         hidden_states = torch.mean(hidden_states, dim=2)  # hidden_states shape = [12, 2*B, 768]
 
         # B * number_classes
@@ -179,7 +178,7 @@ class DANNAdapter(pl.LightningModule):
         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         lr_scheduler = ReduceLROnPlateau(
             optimizer=optimizer,
-            mode="min",
+            mode="max",
             factor=self.scheduler_factor,
             patience=self.scheduler_patience,
             threshold=self.scheduler_threshold,
@@ -194,7 +193,7 @@ class DANNAdapter(pl.LightningModule):
                 {
                     "scheduler": lr_scheduler,
                     "reduce_lr_on_plateau": True,
-                    "monitor": "val/divergence",
+                    "monitor": "source_val/f1",
                     "interval": "epoch",
                 }
             ],
@@ -259,7 +258,7 @@ class DANNAdapter(pl.LightningModule):
         for key, val in metrics.items():
             self.log(name=key, value=val)
 
-        return metrics
+        return loss
 
     def training_epoch_end(self, outputs):
         self._log_metrics(outputs)
