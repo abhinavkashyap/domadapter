@@ -61,18 +61,39 @@ class DANNAdapter(pl.LightningModule):
             nn.ReLU(inplace=True),
             nn.Linear(
                 in_features=self.hparams["hidden_size"],
-                out_features=hparams["num_classes"],
+                out_features=self.hparams["num_classes"],
             ),
         )
 
-        self.domain_classifier = nn.Sequential(
-            nn.Linear(
-                in_features=self.config.hidden_size,
-                out_features=self.hparams["hidden_size"],
-            ),
-            nn.ReLU(inplace=True),
-            nn.Linear(in_features=self.hparams["hidden_size"], out_features=2),
-        )
+        # class TaskClassifierModule(nn.Module):
+        #     def __init__(self, hparams):
+        #         super(TaskClassifierModule, self).__init__()
+        #         self.linear_hidden = nn.ModuleList([nn.Linear(in_features=768, out_features=hparams["hidden_size"]) for i in range(12)])  # 768 had to be hardcoded here ;-;
+        #         self.linear_hidden_same = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=hparams["hidden_size"]) for i in range(12)])
+        #         self.prediction_head = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=hparams["num_classes"]) for i in range(12)])
+
+        #     def forward(self, x, layer):
+        #         # ModuleList can act as an iterable, or be indexed using ints
+        #         x = nn.ReLU()(self.linear_hidden[layer](x))
+        #         x = nn.ReLU()(self.linear_hidden_same[layer](x))
+        #         x = self.prediction_head[layer](x)
+        #         return x
+
+        class DomainClassifierModule(nn.Module):
+            def __init__(self, hparams):
+                super(DomainClassifierModule, self).__init__()
+                self.linear_hidden = nn.ModuleList([nn.Linear(in_features=768, out_features=hparams["hidden_size"]) for i in range(12)])  # 768 had to be hardcoded here ;-;
+                self.prediction_head = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=2) for i in range(12)])
+
+            def forward(self, x, layer):
+                # ModuleList can act as an iterable, or be indexed using ints
+                x = nn.ReLU()(self.linear_hidden[layer](x))
+                x = self.prediction_head[layer](x)
+                return x
+
+        self.domain_classifier = DomainClassifierModule(hparams)
+        # self.task_classifier = TaskClassifierModule(hparams)
+
 
         self.domain_clf_loss = CrossEntropyLoss()
         self.task_clf_loss = CrossEntropyLoss()
@@ -141,26 +162,30 @@ class DANNAdapter(pl.LightningModule):
         outputs = self.feature_extractor(input_ids=inp_ids, attention_mask=attn_mask)
         pooler_output = outputs.pooler_output
         # shape of pooler_output = (B,768)
-        src_features, trg_features = torch.split(pooler_output, [bsz, bsz], dim=0)
+        src_features_pool, trg_features_pool = torch.split(pooler_output, [bsz, bsz], dim=0)
 
-        hidden_states = outputs.hidden_states[1 : len(outputs.hidden_states)]
-        hidden_states  = torch.stack(list(hidden_states), dim=0)  # shape of hidden_states = 12 (tuple)
+        hidden_states = outputs.hidden_states[1 : len(outputs.hidden_states)]  # shape of hidden_states = 12 (tuple)
+        hidden_states  = torch.stack(list(hidden_states), dim=0)  # hidden_states shape = [12, 2*B, 128, 768]
         hidden_states = torch.mean(hidden_states, dim=2)  # hidden_states shape = [12, 2*B, 768]
 
         # B * number_classes
-        src_taskclf_logits = self.task_classifier(src_features)
-        trg_taskclf_logits = self.task_classifier(trg_features)
+        src_taskclf_logits = self.task_classifier(src_features_pool)
+        trg_taskclf_logits = self.task_classifier(trg_features_pool)
 
         src_features, trg_features = torch.split(hidden_states, [bsz, bsz], dim=1)  # src_features shape = [12, B, 768]
-        src_features = src_features.reshape(src_features.size(0)*src_features.size(1), src_features.size(2))    # src_features shape = [12*B, 768]
-        trg_features = trg_features.reshape(trg_features.size(0)*trg_features.size(1), trg_features.size(2))
 
         if self.switch_off_adv_train is False:
             src_grl_features = GradientReversal.apply(src_features, alpha)
             trg_grl_features = GradientReversal.apply(trg_features, alpha)
 
-            src_domclf_logits = self.domain_classifier(src_grl_features)
-            trg_domclf_logits = self.domain_classifier(trg_grl_features)
+            src_domclf_logits = self.domain_classifier(src_grl_features[0], 0)
+            for layer in range(1,hidden_states.size(0)):
+                src_domclf_logits = torch.cat((src_domclf_logits, self.domain_classifier(src_grl_features[layer], layer)), 0)
+
+            trg_domclf_logits = self.domain_classifier(trg_grl_features[0], 0)
+            for layer in range(1,hidden_states.size(0)):
+                trg_domclf_logits = torch.cat((trg_domclf_logits, self.domain_classifier(trg_grl_features[layer], layer)), 0)
+
         else:
             src_domclf_logits = None
             trg_domclf_logits = None
