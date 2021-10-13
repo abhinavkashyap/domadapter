@@ -48,36 +48,19 @@ class DANNAdapter(pl.LightningModule):
                 self.feature_extractor.train_adapter(f"DANN_adapter_{self.hparams['source_target']}")
                 console.print(f"[green] Added {self.hparams['source_target']} DANN adapter")
 
-        self.task_classifier = nn.Sequential(
-            nn.Linear(
-                in_features=self.config.hidden_size,
-                out_features=self.hparams["hidden_size"],
-            ),
-            nn.ReLU(inplace=True),
-            nn.Linear(
-                in_features=self.hparams["hidden_size"],
-                out_features=self.hparams["hidden_size"],
-            ),
-            nn.ReLU(inplace=True),
-            nn.Linear(
-                in_features=self.hparams["hidden_size"],
-                out_features=self.hparams["num_classes"],
-            ),
-        )
+        class TaskClassifierModule(nn.Module):
+            def __init__(self, hparams):
+                super(TaskClassifierModule, self).__init__()
+                self.linear_hidden = nn.ModuleList([nn.Linear(in_features=768, out_features=hparams["hidden_size"]) for i in range(12)])  # 768 had to be hardcoded here ;-;
+                self.linear_hidden_same = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=hparams["hidden_size"]) for i in range(12)])
+                self.prediction_head = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=hparams["num_classes"]) for i in range(12)])
 
-        # class TaskClassifierModule(nn.Module):
-        #     def __init__(self, hparams):
-        #         super(TaskClassifierModule, self).__init__()
-        #         self.linear_hidden = nn.ModuleList([nn.Linear(in_features=768, out_features=hparams["hidden_size"]) for i in range(12)])  # 768 had to be hardcoded here ;-;
-        #         self.linear_hidden_same = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=hparams["hidden_size"]) for i in range(12)])
-        #         self.prediction_head = nn.ModuleList([nn.Linear(in_features=hparams["hidden_size"], out_features=hparams["num_classes"]) for i in range(12)])
-
-        #     def forward(self, x, layer):
-        #         # ModuleList can act as an iterable, or be indexed using ints
-        #         x = nn.ReLU()(self.linear_hidden[layer](x))
-        #         x = nn.ReLU()(self.linear_hidden_same[layer](x))
-        #         x = self.prediction_head[layer](x)
-        #         return x
+            def forward(self, x, layer):
+                # ModuleList can act as an iterable, or be indexed using ints
+                x = nn.ReLU()(self.linear_hidden[layer](x))
+                x = nn.ReLU()(self.linear_hidden_same[layer](x))
+                x = self.prediction_head[layer](x)
+                return x
 
         class DomainClassifierModule(nn.Module):
             def __init__(self, hparams):
@@ -92,8 +75,7 @@ class DANNAdapter(pl.LightningModule):
                 return x
 
         self.domain_classifier = DomainClassifierModule(hparams)
-        # self.task_classifier = TaskClassifierModule(hparams)
-
+        self.task_classifier = TaskClassifierModule(hparams)
 
         self.domain_clf_loss = CrossEntropyLoss()
         self.task_clf_loss = CrossEntropyLoss()
@@ -160,17 +142,17 @@ class DANNAdapter(pl.LightningModule):
         attn_mask = torch.cat([src_attn_mask, trg_attn_mask], dim=0)
 
         outputs = self.feature_extractor(input_ids=inp_ids, attention_mask=attn_mask)
-        pooler_output = outputs.pooler_output
+        # pooler_output = outputs.pooler_output
         # shape of pooler_output = (B,768)
-        src_features_pool, trg_features_pool = torch.split(pooler_output, [bsz, bsz], dim=0)
+        # src_features_pool, trg_features_pool = torch.split(pooler_output, [bsz, bsz], dim=0)
 
         hidden_states = outputs.hidden_states[1 : len(outputs.hidden_states)]  # shape of hidden_states = 12 (tuple)
         hidden_states  = torch.stack(list(hidden_states), dim=0)  # hidden_states shape = [12, 2*B, 128, 768]
         hidden_states = torch.mean(hidden_states, dim=2)  # hidden_states shape = [12, 2*B, 768]
 
         # B * number_classes
-        src_taskclf_logits = self.task_classifier(src_features_pool)
-        trg_taskclf_logits = self.task_classifier(trg_features_pool)
+        # src_taskclf_logits = self.task_classifier(src_features_pool)
+        # trg_taskclf_logits = self.task_classifier(trg_features_pool)
 
         src_features, trg_features = torch.split(hidden_states, [bsz, bsz], dim=1)  # src_features shape = [12, B, 768]
 
@@ -178,15 +160,27 @@ class DANNAdapter(pl.LightningModule):
             src_grl_features = GradientReversal.apply(src_features, alpha)
             trg_grl_features = GradientReversal.apply(trg_features, alpha)
 
+            src_taskclf_logits = self.task_classifier(src_features[0], 0)
             src_domclf_logits = self.domain_classifier(src_grl_features[0], 0)
             for layer in range(1,hidden_states.size(0)):
+                src_taskclf_logits = torch.cat((src_taskclf_logits, self.task_classifier(src_features[layer], layer)), 0)
                 src_domclf_logits = torch.cat((src_domclf_logits, self.domain_classifier(src_grl_features[layer], layer)), 0)
 
+            trg_taskclf_logits = self.task_classifier(trg_features[0], 0)
             trg_domclf_logits = self.domain_classifier(trg_grl_features[0], 0)
             for layer in range(1,hidden_states.size(0)):
+                trg_taskclf_logits = torch.cat((trg_taskclf_logits, self.task_classifier(trg_features[layer], layer)), 0)
                 trg_domclf_logits = torch.cat((trg_domclf_logits, self.domain_classifier(trg_grl_features[layer], layer)), 0)
 
         else:
+            src_taskclf_logits = self.task_classifier(src_features[0], 0)
+            for layer in range(1,hidden_states.size(0)):
+                src_taskclf_logits = torch.cat((src_taskclf_logits, self.task_classifier(src_features[layer], layer)), 0)
+
+            trg_taskclf_logits = self.task_classifier(trg_features[0], 0)
+            for layer in range(1,hidden_states.size(0)):
+                trg_taskclf_logits = torch.cat((trg_taskclf_logits, self.task_classifier(trg_features[layer], layer)), 0)
+
             src_domclf_logits = None
             trg_domclf_logits = None
 
@@ -253,6 +247,7 @@ class DANNAdapter(pl.LightningModule):
             trg_attn_mask=trg_attn_mask,
             alpha=alpha,
         )
+        labels = labels.repeat(src_taskclf_logits.size(0)//labels.size(0))  # augment ground truth for each layer
         # get the loss
         class_loss = self.task_clf_loss(src_taskclf_logits, labels)
 
@@ -319,6 +314,8 @@ class DANNAdapter(pl.LightningModule):
             trg_attn_mask=trg_attn_mask,
             alpha=alpha,
         )
+        src_labels = src_labels.repeat(src_taskclf_logits.size(0)//src_labels.size(0))  # augment ground truth for each layer
+        trg_labels = trg_labels.repeat(trg_taskclf_logits.size(0)//trg_labels.size(0))  # augment ground truth for each layer
         # get the loss
         src_task_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
         trg_task_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
@@ -415,6 +412,8 @@ class DANNAdapter(pl.LightningModule):
             trg_attn_mask=trg_attn_mask,
             alpha=alpha,
         )
+        src_labels = src_labels.repeat(src_taskclf_logits.size(0)//src_labels.size(0))  # augment ground truth for each layer
+        trg_labels = trg_labels.repeat(trg_taskclf_logits.size(0)//trg_labels.size(0))  # augment ground truth for each layer
         # get the loss
         src_task_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
         trg_task_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
