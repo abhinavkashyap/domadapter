@@ -331,8 +331,8 @@ class DANNAdapter(pl.LightningModule):
             src_dom_clf_f1 = self.val_dom_clf_f1(preds=src_domclf_logits, target=src_dom_labels)
             trg_dom_clf_f1 = self.val_dom_clf_f1(preds=trg_domclf_logits, target=trg_dom_labels)
 
-            dom_acc = src_dom_clf_acc + trg_dom_clf_acc
-            dom_f1 = src_dom_clf_f1 + trg_dom_clf_f1
+            dom_acc = (src_dom_clf_acc + trg_dom_clf_acc) / 2
+            dom_f1 = (src_dom_clf_f1 + trg_dom_clf_f1) / 2
         else:
             dom_acc = torch.FloatTensor([0.0]).to(self.device)
             dom_f1 = torch.FloatTensor([0.0]).to(self.device)
@@ -426,8 +426,8 @@ class DANNAdapter(pl.LightningModule):
 
             src_dom_clf_f1 = self.test_dom_clf_f1(preds=src_domclf_logits, target=src_dom_labels)
             trg_dom_clf_f1 = self.test_dom_clf_f1(preds=trg_domclf_logits, target=trg_dom_labels)
-            dom_acc = src_dom_clf_acc + trg_dom_clf_acc
-            dom_f1 = src_dom_clf_f1 + trg_dom_clf_f1
+            dom_acc = (src_dom_clf_acc + trg_dom_clf_acc) / 2
+            dom_f1 = (src_dom_clf_f1 + trg_dom_clf_f1) / 2
         else:
             dom_acc = torch.FloatTensor([0.0]).to(self.device)
             dom_f1 = torch.FloatTensor([0.0]).to(self.device)
