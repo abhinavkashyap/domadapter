@@ -1,4 +1,4 @@
-from domadapter.models.gradient_reversal import GradientReversal
+from domadapter.models.modules.gradient_reversal import GradientReversal
 
 from collections import defaultdict
 import torch

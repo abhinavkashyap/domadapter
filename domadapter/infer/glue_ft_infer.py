@@ -2,7 +2,7 @@ import pathlib
 import json
 import torch
 from domadapter.console import console
-from domadapter.models.glue_ft import GlueFT
+from domadapter.models.ft.glue_ft import GlueFT
 from domadapter.datamodules.glue_dm import GlueDM
 import numpy as np
 from tqdm import tqdm

@@ -25,6 +25,7 @@ MNLI_GENRE="government"
 SAMPLE_PROPORTION=0.9
 
 index=0
+# shellcheck disable=SC2068
 for seed in ${SEEDS[@]};
 do
     for lr in ${LEARNING_RATES[@]};

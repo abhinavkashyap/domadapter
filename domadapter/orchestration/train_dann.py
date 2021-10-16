@@ -1,9 +1,8 @@
 import click
 import pathlib
 import gc
-import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
-from domadapter.models.dann import DANN
+from domadapter.models.uda.dann import DANN
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping

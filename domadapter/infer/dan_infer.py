@@ -1,5 +1,5 @@
 import pathlib
-from domadapter.models.dan import DAN
+from domadapter.models.uda.dan import DAN
 from domadapter.datamodules.clf_datamodule import ClassificationDataModule
 import torch
 import json

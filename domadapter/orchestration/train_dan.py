@@ -1,13 +1,12 @@
 import click
 import pathlib
 from domadapter.datamodules.clf_datamodule import ClassificationDataModule
-from domadapter.models.dan import DAN
+from domadapter.models.uda.dan import DAN
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import seed_everything
 import json
-from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
 

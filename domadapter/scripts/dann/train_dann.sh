@@ -18,10 +18,10 @@ PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_dann.py"
 
 for i in "fiction"; do
     for j in "slate"; do
-        for LR in ${LRS[@]};
+        for LR in "${LRS[@]}";
         do
-            python ${PYTHON_FILE} \
-                --dataset-cache-dir ${DATASET_CACHE_DIR} \
+            python "${PYTHON_FILE}" \
+                --dataset-cache-dir "${DATASET_CACHE_DIR}" \
                 --source-target  "${i}_${j}" \
                 --pretrained-model-name "bert-base-uncased" \
                 --seed ${SEED} \
@@ -33,11 +33,11 @@ for i in "fiction"; do
                 --num-classes ${NUM_CLASSES} \
                 --max-seq-length ${MAX_SEQ_LENGTH} \
                 --padding ${PADDING} \
-                --lr ${LR} \
+                --lr "${LR}" \
                 --log-freq 5 \
                 --epochs ${EPOCHS} \
                 --bsz ${BSZ} \
-                --exp-dir ${EXP_DIR}/${i}_${j}/dann/EXP_lr${LR}_constalpha \
+                --exp-dir "${EXP_DIR}"/${i}_${j}/dann/EXP_lr"${LR}"_constalpha \
                 --dann_alpha 0.08
         done
     done

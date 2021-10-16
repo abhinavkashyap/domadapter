@@ -1,18 +1,16 @@
 import click
 import pathlib
 import gc
-import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
-from domadapter.models.dann_adapter import DANNAdapter
+from domadapter.models.adapters.dann_adapter import DANNAdapter
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning import seed_everything
 import json
 from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
-
+from pytorch_lightning.loggers import WandbLogger
 
 @click.command()
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
@@ -31,6 +29,7 @@ import shutil
 @click.option("--test-proportion", type=float, help="Test on small proportion")
 @click.option("--hidden-size", type=str, help="Hidden size of Linear Layer for downsampling")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
+@click.option("--exp-name", type=str, help="Experiment name.")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
@@ -69,6 +68,7 @@ def train_dann(
     padding,
     source_target,
     exp_dir,
+    exp_name,
     seed,
     log_freq,
     lr,
@@ -80,7 +80,7 @@ def train_dann(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
-    checkpoints_dir = exp_dir.joinpath("DANNAdapter")
+    checkpoints_dir = exp_dir.joinpath("dann_adapter", exp_name)
 
     # Ask to delete if experiment exists
     if checkpoints_dir.is_dir():
@@ -127,12 +127,12 @@ def train_dann(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
-    # logger = WandbLogger(
-    #     save_dir=str(exp_dir),
-    #     project=f"MNLI_{pretrained_model_name}",
-    #     job_type="DANN Adapter",
-    #     group=source_target,
-    # )
+    logger = WandbLogger(
+        save_dir=str(exp_dir),
+        project=f"MNLI_{pretrained_model_name}",
+        job_type="DANN Adapter",
+        group=source_target
+    )
 
     # logger.watch(model, log="gradients", log_freq=log_freq)
 
@@ -153,9 +153,9 @@ def train_dann(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
-        # logger=logger,
+        logger=logger,
     )
 
     dm.setup("fit")

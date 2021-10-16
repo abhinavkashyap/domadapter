@@ -3,9 +3,8 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
-from domadapter.models.domain_task_adapter import DomainTaskAdapter
+from domadapter.models.adapters.domain_task_adapter import DomainTaskAdapter
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning import seed_everything
 import json

@@ -11,7 +11,7 @@ from rich.prompt import Confirm
 import shutil
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
-from domadapter.models.glue_ft import GlueFT
+from domadapter.models.ft.glue_ft import GlueFT
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 
@@ -122,7 +122,6 @@ def main():
 
     with open(hparams_file, "w") as fp:
         json.dump(hparams, fp)
-
 
 
 if __name__ == "__main__":

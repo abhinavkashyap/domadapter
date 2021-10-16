@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from domadapter.models.linear_clf import LinearClassifier
+from domadapter.models.modules.linear_clf import LinearClassifier
 import numpy as np
 from domadapter.divergences.gaussian_mkmmd_divergence import GaussianMKMMD
 from domadapter.divergences.rbf_mkmmd_divergence import RBFMKMMD
