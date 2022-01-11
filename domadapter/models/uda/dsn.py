@@ -262,12 +262,14 @@ class DSN(pl.LightningModule):
         # get the loss
         class_loss = self.task_clf_loss(src_taskclf_logits, labels)
 
+        # Between private and shared
         diff_loss_source = self.diff_loss(hcs, hps)
         diff_loss_target = self.diff_loss(hct, hpt)
-        final_diff_loss = diff_loss_source + diff_loss_target
+        # Across privates
+        final_diff_loss = diff_loss_source + diff_loss_target + self.diff_loss(hps, hpt)
 
-        recon_loss_source = self.recon_loss(xs, src_decoder_output)
-        recon_loss_target = self.recon_loss(xt, trg_decoder_output)
+        recon_loss_source = self.recon_loss(src_decoder_output, xs)
+        recon_loss_target = self.recon_loss(trg_decoder_output, xt)
         final_recon_loss = recon_loss_source + recon_loss_target
 
         similarity_loss = self.similarity_loss.calculate(
@@ -337,10 +339,11 @@ class DSN(pl.LightningModule):
 
         diff_loss_source = self.diff_loss(hcs, hps)
         diff_loss_target = self.diff_loss(hct, hpt)
-        final_diff_loss = diff_loss_source + diff_loss_target
+        # Across privates
+        final_diff_loss = diff_loss_source + diff_loss_target + self.diff_loss(hps, hpt)
 
-        recon_loss_source = self.recon_loss(xs, src_decoder_output)
-        recon_loss_target = self.recon_loss(xt, trg_decoder_output)
+        recon_loss_source = self.recon_loss(src_decoder_output, xs)
+        recon_loss_target = self.recon_loss(trg_decoder_output, xt)
         final_recon_loss = recon_loss_source + recon_loss_target
 
         similarity_loss = self.similarity_loss.calculate(
@@ -416,10 +419,11 @@ class DSN(pl.LightningModule):
 
         diff_loss_source = self.diff_loss(hcs, hps)
         diff_loss_target = self.diff_loss(hct, hpt)
-        final_diff_loss = diff_loss_source + diff_loss_target
+        # Across privates
+        final_diff_loss = diff_loss_source + diff_loss_target + self.diff_loss(hps, hpt)
 
-        recon_loss_source = self.recon_loss(xs, src_decoder_output)
-        recon_loss_target = self.recon_loss(xt, trg_decoder_output)
+        recon_loss_source = self.recon_loss(src_decoder_output, xs)
+        recon_loss_target = self.recon_loss(trg_decoder_output, xt)
         final_recon_loss = recon_loss_source + recon_loss_target
 
         similarity_loss = self.similarity_loss.calculate(
