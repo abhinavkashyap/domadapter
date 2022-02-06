@@ -12,6 +12,7 @@ from collections import defaultdict
 
 from domadapter.models.modules.dsn_losses import DiffLoss, MSE
 from domadapter.divergences.cmd_divergence import CMD
+from domadapter.models.modules.linear_clf import LinearClassifier
 
 import torchmetrics
 
@@ -41,25 +42,13 @@ class DSN(pl.LightningModule):
             f"[green] Loaded {self.hparams['pretrained_model_name']} base model"
         )
 
-        self.normalize = nn.Sequential(
-            nn.Linear(
-                in_features=self.config.hidden_size,
-                out_features=hparams["hidden_size"],
-            ),
-            nn.ReLU(inplace=True),
-            nn.LayerNorm(hparams["hidden_size"]),
-        )
 
-        self.task_classifier = nn.Sequential(
-            nn.Linear(
-                in_features=hparams["hidden_size"],
-                out_features=hparams["hidden_size"],
-            ),
-            nn.ReLU(inplace=True),
-            nn.Linear(
-                in_features=hparams["hidden_size"],
-                out_features=hparams["num_classes"],
-            ),
+        self.task_classifier = LinearClassifier(
+            num_hidden_layers=2,
+            input_size=hparams["hidden_size"],
+            hidden_size=hparams["hidden_size"],
+            output_size=hparams["num_classes"],
+            return_hiddens=True
         )
 
         self.shared_encoder = nn.Sequential(
@@ -67,7 +56,7 @@ class DSN(pl.LightningModule):
                 in_features=hparams["hidden_size"],
                 out_features=hparams["hidden_size"],
             ),
-            nn.Sigmoid(),
+            nn.ReLU(inplace=True),
         )
 
         self.private_source_encoder = nn.Sequential(
@@ -75,7 +64,7 @@ class DSN(pl.LightningModule):
                 in_features=hparams["hidden_size"],
                 out_features=hparams["hidden_size"],
             ),
-            nn.Sigmoid(),
+            nn.ReLU(inplace=True),
         )
 
         self.private_target_encoder = nn.Sequential(
@@ -83,7 +72,7 @@ class DSN(pl.LightningModule):
                 in_features=hparams["hidden_size"],
                 out_features=hparams["hidden_size"],
             ),
-            nn.Sigmoid(),
+            nn.ReLU(inplace=True),
         )
 
         self.shared_decoder = nn.Sequential(
@@ -92,6 +81,7 @@ class DSN(pl.LightningModule):
                 out_features=hparams["hidden_size"],
             )
         )
+
 
         self.task_clf_loss = CrossEntropyLoss()
         self.similarity_loss = CMD()
@@ -162,38 +152,33 @@ class DSN(pl.LightningModule):
         """
 
         bsz = src_inp_ids.size(0)
-        inp_ids = torch.cat([src_inp_ids, trg_inp_ids], dim=0)
-        attn_mask = torch.cat([src_attn_mask, trg_attn_mask], dim=0)
 
-        outputs = self.feature_extractor(input_ids=inp_ids, attention_mask=attn_mask)
-        pooler_outputs_normalized = self.normalize(outputs.pooler_output)
-        xs, xt = torch.split(pooler_outputs_normalized, [bsz, bsz], dim=0)
+        src_features = self.feature_extractor(input_ids=src_inp_ids, attention_mask=src_attn_mask)
+        trg_features = self.feature_extractor(input_ids=trg_inp_ids, attention_mask=trg_attn_mask)
+        src_features = src_features.pooler_output
+        trg_features = trg_features.pooler_output
 
         # common encoder
-        hct = self.shared_encoder(xs)
-        hcs = self.shared_encoder(xt)
+        hcs = self.shared_encoder(src_features)
+        hct = self.shared_encoder(trg_features)
 
         # private source encoder
-        hps = self.private_source_encoder(xs)
+        hps = self.private_source_encoder(src_features)
         # private target encoder
-        hpt = self.private_target_encoder(xt)
-        # task classifier (source and target)
-        src_taskclf_logits = self.task_classifier(hcs)
-        trg_taskclf_logits = self.task_classifier(hct)
+        hpt = self.private_target_encoder(trg_features)
 
-        # shared decoder
         shared_decoder_input_source = hcs + hps
         shared_decoder_input_target = hct + hpt
 
         src_decoder_output = self.shared_decoder(shared_decoder_input_source)
         trg_decoder_output = self.shared_decoder(shared_decoder_input_target)
 
-        # Name of vars are exactly how it's mentioned in paper
-        # https://proceedings.neurips.cc/paper/2016/file/45fbc6d3e05ebd93369ce542e8f2322d-Paper.pdf
+        _, src_taskclf_logits = self.task_classifier(hcs)
+        _, trg_taskclf_logits = self.task_classifier(hct)
 
         return (
-            xs,
-            xt,
+            src_features,
+            trg_features,
             hcs,
             hct,
             hps,
@@ -201,7 +186,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output,
+            trg_decoder_output
         )
 
     def configure_optimizers(self):
@@ -252,7 +237,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output,
+            trg_decoder_output
         ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
@@ -265,8 +250,8 @@ class DSN(pl.LightningModule):
         # Between private and shared
         diff_loss_source = self.diff_loss(hcs, hps)
         diff_loss_target = self.diff_loss(hct, hpt)
-        # Across privates
-        final_diff_loss = diff_loss_source + diff_loss_target + self.diff_loss(hps, hpt)
+
+        final_diff_loss = diff_loss_source + diff_loss_target
 
         recon_loss_source = self.recon_loss(src_decoder_output, xs)
         recon_loss_target = self.recon_loss(trg_decoder_output, xt)
@@ -290,10 +275,10 @@ class DSN(pl.LightningModule):
             "train/accuracy": accuracy,
             "train/f1": f1,
             "train/taskclf_loss": class_loss,
-            "train/difference_loss": final_diff_loss,
-            "train/reconstruction_loss": final_recon_loss,
-            "train/similarity_loss": similarity_loss,
             "train/loss": loss,
+            "train/diff_loss": self.diff_weight * final_diff_loss,
+            "train/sim_loss": self.sim_weight * similarity_loss,
+            "train/recon_loss": self.recon_weight * final_recon_loss
         }
 
         for key, val in metrics.items():
@@ -326,7 +311,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output,
+            trg_decoder_output
         ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
@@ -334,46 +319,26 @@ class DSN(pl.LightningModule):
             trg_attn_mask=trg_attn_mask,
         )
         # get the loss
-        src_task_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
-        trg_task_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
-
-        diff_loss_source = self.diff_loss(hcs, hps)
-        diff_loss_target = self.diff_loss(hct, hpt)
-        # Across privates
-        final_diff_loss = diff_loss_source + diff_loss_target + self.diff_loss(hps, hpt)
-
-        recon_loss_source = self.recon_loss(src_decoder_output, xs)
-        recon_loss_target = self.recon_loss(trg_decoder_output, xt)
-        final_recon_loss = recon_loss_source + recon_loss_target
-
-        similarity_loss = self.similarity_loss.calculate(
-            source_sample=hcs, target_sample=hct
-        )
-
-        src_acc = self.src_dev_acc(preds=src_taskclf_logits, target=src_labels)
+        src_class_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
+        src_accuracy = self.src_dev_acc(preds=src_taskclf_logits, target=src_labels)
         src_f1 = self.src_dev_f1(preds=src_taskclf_logits, target=src_labels)
 
-        trg_acc = self.trg_dev_acc(preds=trg_taskclf_logits, target=trg_labels)
+        trg_class_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
+        trg_accuracy = self.trg_dev_acc(preds=trg_taskclf_logits, target=trg_labels)
         trg_f1 = self.trg_dev_f1(preds=trg_taskclf_logits, target=trg_labels)
 
         loss = (
-            src_task_loss
-            + self.diff_weight * final_diff_loss
-            + self.sim_weight * similarity_loss
-            + self.recon_weight * final_recon_loss
+            src_class_loss
         )
 
         metrics = {
-            "source_val/taskclf_loss": src_task_loss,
-            "source_val/accuracy": src_acc,
+            "source_val/taskclf_loss": src_class_loss,
+            "source_val/accuracy": src_accuracy,
             "source_val/f1": src_f1,
-            "target_val/taskclf_loss": trg_task_loss,
-            "target_val/accuracy": trg_acc,
-            "target_val/f1": trg_f1,
             "val/loss": loss,
-            "val/reconstruction_loss": final_recon_loss,
-            "val/difference_loss": final_diff_loss,
-            "val/similarity_loss": similarity_loss,
+            "target_val/taskclf_loss": trg_class_loss,
+            "target_val/accuracy": trg_accuracy,
+            "target_val/f1": trg_f1
         }
 
         for key, val in metrics.items():
@@ -406,7 +371,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output,
+            trg_decoder_output
         ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
@@ -414,13 +379,13 @@ class DSN(pl.LightningModule):
             trg_attn_mask=trg_attn_mask,
         )
         # get the loss
-        src_task_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
-        trg_task_loss = self.task_clf_loss(trg_taskclf_logits, trg_labels)
+        class_loss = self.task_clf_loss(src_taskclf_logits, src_labels)
 
+        # Between private and shared
         diff_loss_source = self.diff_loss(hcs, hps)
         diff_loss_target = self.diff_loss(hct, hpt)
-        # Across privates
-        final_diff_loss = diff_loss_source + diff_loss_target + self.diff_loss(hps, hpt)
+
+        final_diff_loss = diff_loss_source + diff_loss_target
 
         recon_loss_source = self.recon_loss(src_decoder_output, xs)
         recon_loss_target = self.recon_loss(trg_decoder_output, xt)
@@ -430,30 +395,27 @@ class DSN(pl.LightningModule):
             source_sample=hcs, target_sample=hct
         )
 
-        src_acc = self.src_dev_acc(preds=src_taskclf_logits, target=src_labels)
-        src_f1 = self.src_dev_f1(preds=src_taskclf_logits, target=src_labels)
 
-        trg_acc = self.trg_dev_acc(preds=trg_taskclf_logits, target=trg_labels)
-        trg_f1 = self.trg_dev_f1(preds=trg_taskclf_logits, target=trg_labels)
+        src_accuracy = self.src_test_acc(preds=src_taskclf_logits, target=src_labels)
+        src_f1 = self.src_test_f1(preds=src_taskclf_logits, target=src_labels)
+
+        trg_accuracy = self.trg_test_acc(preds=trg_taskclf_logits, target=trg_labels)
+        trg_f1 = self.trg_test_f1(preds=trg_taskclf_logits, target=trg_labels)
+
 
         loss = (
-            src_task_loss
+            class_loss
             + self.diff_weight * final_diff_loss
             + self.sim_weight * similarity_loss
             + self.recon_weight * final_recon_loss
         )
 
         metrics = {
-            "source_test/taskclf_loss": src_task_loss,
-            "source_test/accuracy": src_acc,
+            "source_test/taskclf_loss": class_loss,
+            "source_test/accuracy": src_accuracy,
             "source_test/f1": src_f1,
-            "target_test/taskclf_loss": trg_task_loss,
-            "target_test/accuracy": trg_acc,
-            "target_test/f1": trg_f1,
-            "test/loss": loss,
-            "test/reconstruction_loss": final_recon_loss,
-            "test/difference_loss": final_diff_loss,
-            "test/similarity_loss": similarity_loss,
+            "target_test/accuracy": trg_accuracy,
+            "target_test/f1": trg_f1
         }
 
         for key, val in metrics.items():

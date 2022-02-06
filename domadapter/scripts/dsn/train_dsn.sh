@@ -2,21 +2,21 @@
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 # Keep HIDDEN_SIZE 128 instead of 100
 
-TRAIN_PROP=0.001
-DEV_PROP=0.004
-TEST_PROP=0.003
+TRAIN_PROP=1.0
+DEV_PROP=1.0
+TEST_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
-HIDDEN_SIZE=128
-BSZ=4
-EPOCHS=2
+HIDDEN_SIZE=768
+BSZ=16
+EPOCHS=10
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3
 DIFF_WEIGHT=0.3
-SIM_WEIGHT=1.0
-RECON_WEIGHT=1.0
-LRS=(3e-05)
+SIM_WEIGHT=0.1
+RECON_WEIGHT=0.1
+LRS=(1e-05)
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_dsn.py"
 
