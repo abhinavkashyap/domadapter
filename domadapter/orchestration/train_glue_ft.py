@@ -13,6 +13,8 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
 from domadapter.models.ft.glue_ft import GlueFT
 from pytorch_lightning.callbacks import ModelCheckpoint
+import wandb
+from domadapter.console import console
 
 
 @dataclass
@@ -53,17 +55,12 @@ def main():
     }
 
     experiments_dir = Path(os.environ["OUTPUT_DIR"]).joinpath("mnli_ft", f"{data_args.multinli_genre}")
-    current_exp_dir = experiments_dir.joinpath(trainer_args.exp_name)
-    wandb_dir = current_exp_dir.joinpath("wandb")
+    exp_dir = experiments_dir.joinpath(trainer_args.exp_name)
 
-    if current_exp_dir.is_dir():
-        is_delete = Confirm.ask(f"{current_exp_dir} exists. Delete?")
-        if is_delete:
-            shutil.rmtree(str(current_exp_dir))
-    else:
-        current_exp_dir.mkdir(parents=True)
+    if not exp_dir.is_dir():
+        exp_dir.mkdir(parents=True)
 
-    # create the wandb directory to save the logs from weights and biases
+    wandb_dir = exp_dir.joinpath("wandb")
     wandb_dir.mkdir(parents=True)
 
     seed_everything(trainer_args.seed)
@@ -94,7 +91,24 @@ def main():
 
     callbacks = []
 
-    checkpoints_dir = current_exp_dir.joinpath("checkpoints")
+    # I don't think run_id thing is required here as
+    # exp_name contains lr, and seed for the training.
+    # Adding run_id will increase the folders to traverse
+
+    # print(f"run id {logger.experiment.id}")
+    # run_id = logger.experiment.id
+    # exp_dir = exp_dir.joinpath(run_id)
+    checkpoints_dir = exp_dir.joinpath("checkpoints")
+    # Ask to delete if experiment exists
+    if checkpoints_dir.is_dir():
+        is_delete = Confirm.ask(f"{checkpoints_dir} already exists. Do you want to delete it?")
+        if is_delete:
+            shutil.rmtree(str(checkpoints_dir))
+            console.print(f"[red] Deleted {checkpoints_dir}")
+            checkpoints_dir.mkdir(parents=True)
+    else:
+        checkpoints_dir.mkdir(parents=True)
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
         save_top_k=1,
@@ -118,7 +132,7 @@ def main():
     trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
     trainer.test(dataloaders=test_loader)
 
-    hparams_file = current_exp_dir.joinpath("hparams.json")
+    hparams_file = exp_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hparams, fp)
