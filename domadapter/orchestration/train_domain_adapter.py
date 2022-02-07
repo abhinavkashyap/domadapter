@@ -103,7 +103,6 @@ def train_domain_adapter(
     run_id = logger.experiment.id
     exp_dir = exp_dir.joinpath(run_id)
 
-    print(logger.experiment.dir)
     wandb_dir = exp_dir.joinpath("wandb")
     wandb_dir.mkdir(parents=True)
     wandb_logger_folder = os.path.split(logger.experiment.dir)[0]
@@ -134,9 +133,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
-        # logger=logger,
+        logger=logger,
         gradient_clip_val=gradient_clip_norm
     )
 
