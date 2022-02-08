@@ -69,9 +69,6 @@ def train_domain_adapter(
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
 
-    wandb_dir = exp_dir.joinpath("wandb")
-    wandb_dir.mkdir(parents=True)
-
     seed_everything(seed)
 
     hyperparams = {
@@ -105,35 +102,28 @@ def train_domain_adapter(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
+    run_id = wandb.util.generate_id()
+    exp_dir = exp_dir.joinpath(run_id)
+
     if mode == 'task':
         logger = WandbLogger(
-        save_dir=wandb_dir,
+        save_dir=exp_dir,
+        id = run_id,
         project=f"MNLI_{pretrained_model_name}",
         job_type="task adapter",
         group=source_target,
     )
     else:
         logger = WandbLogger(
-        save_dir=wandb_dir,
+        save_dir=exp_dir,
+        id = run_id,
         project=f"MNLI_{pretrained_model_name}",
         job_type=f"domain task adapter}",
         group=source_target,
     )
 
-    # logger.watch(model, log="gradients", log_freq=log_freq)
-    print(f"run id {logger.experiment.id}")
-    run_id = logger.experiment.id
-    exp_dir = exp_dir.joinpath(run_id)
     checkpoints_dir = exp_dir.joinpath("checkpoints")
-    # Ask to delete if experiment exists
-    if checkpoints_dir.is_dir():
-        is_delete = Confirm.ask(f"{checkpoints_dir} already exists. Do you want to delete it?")
-        if is_delete:
-            shutil.rmtree(str(checkpoints_dir))
-            console.print(f"[red] Deleted {checkpoints_dir}")
-            checkpoints_dir.mkdir(parents=True)
-    else:
-        checkpoints_dir.mkdir(parents=True)
+    checkpoints_dir.mkdir(parents=True)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),

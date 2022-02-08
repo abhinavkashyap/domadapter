@@ -60,9 +60,6 @@ def main():
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
 
-    wandb_dir = exp_dir.joinpath("wandb")
-    wandb_dir.mkdir(parents=True)
-
     seed_everything(trainer_args.seed)
 
     dm = GlueDM(hparams)
@@ -78,9 +75,13 @@ def main():
 
     model = GlueFT(hparams)
 
+    run_id = wandb.util.generate_id()
+    exp_dir = exp_dir.joinpath(run_id)
+
     logger = WandbLogger(
         name=str(trainer_args.exp_name),
-        save_dir=str(wandb_dir),
+        save_dir=exp_dir,
+        id = run_id,
         project=trainer_args.wandb_proj_name,
         job_type=f"{data_args.multinli_genre}",
         group="fine-tune"
@@ -91,23 +92,8 @@ def main():
 
     callbacks = []
 
-    # I don't think run_id thing is required here as
-    # exp_name contains lr, and seed for the training.
-    # Adding run_id will increase the folders to traverse
-
-    # print(f"run id {logger.experiment.id}")
-    # run_id = logger.experiment.id
-    # exp_dir = exp_dir.joinpath(run_id)
     checkpoints_dir = exp_dir.joinpath("checkpoints")
-    # Ask to delete if experiment exists
-    if checkpoints_dir.is_dir():
-        is_delete = Confirm.ask(f"{checkpoints_dir} already exists. Do you want to delete it?")
-        if is_delete:
-            shutil.rmtree(str(checkpoints_dir))
-            console.print(f"[red] Deleted {checkpoints_dir}")
-            checkpoints_dir.mkdir(parents=True)
-    else:
-        checkpoints_dir.mkdir(parents=True)
+    checkpoints_dir.mkdir(parents=True)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
