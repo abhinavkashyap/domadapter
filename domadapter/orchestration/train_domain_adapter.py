@@ -93,24 +93,16 @@ def train_domain_adapter(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
+    run_id = wandb.util.generate_id()
+    exp_dir = exp_dir.joinpath(run_id)
+
     logger = WandbLogger(
-        save_dir=None,
+        save_dir=exp_dir,
+        id = run_id,
         project=f"MNLI_{pretrained_model_name}",
         job_type=f"domain adapter",
         group=source_target,
     )
-    print(f"run id {logger.experiment.id}")
-    run_id = logger.experiment.id
-    exp_dir = exp_dir.joinpath(run_id)
-
-    wandb_dir = exp_dir.joinpath("wandb")
-    wandb_dir.mkdir(parents=True)
-    wandb_logger_folder = os.path.split(logger.experiment.dir)[0]
-    try:
-        os.symlink(wandb_logger_folder, wandb_dir, target_is_directory=True)
-    except FileExistsError:
-        shutil.rmtree(str(wandb_dir))
-        os.symlink(wandb_logger_folder, wandb_dir, target_is_directory=True)
 
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     checkpoints_dir.mkdir(parents=True)
