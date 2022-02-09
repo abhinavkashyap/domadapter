@@ -6,11 +6,13 @@ from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
 from domadapter.models.adapters.domain_task_adapter import DomainTaskAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
 import json
 from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
+import wandb
 
 
 @click.command()
@@ -58,23 +60,14 @@ def train_domain_adapter(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
-    exp_dir = exp_dir.joinpath(source_target)
-    if mode == 'task':
-        checkpoints_dir = exp_dir.joinpath("task_adapter_only")
-    else:
-        checkpoints_dir = exp_dir.joinpath(f"task_adapter_{divergence}")
 
-    # Ask to delete if experiment exists
-    if checkpoints_dir.is_dir():
-        is_delete = Confirm.ask(
-            f"{checkpoints_dir} already exists. Do you want to delete it?"
-        )
-        if is_delete:
-            shutil.rmtree(str(checkpoints_dir))
-            console.print(f"[red] Deleted {checkpoints_dir}")
-            checkpoints_dir.mkdir(parents=True)
+    if mode == 'task':
+        exp_dir = exp_dir.joinpath(source_target, "task_adapter_only")
     else:
-        checkpoints_dir.mkdir(parents=True)
+        exp_dir = exp_dir.joinpath(source_target, f"task_adapter_{divergence}")
+
+    if not exp_dir.is_dir():
+        exp_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -109,22 +102,28 @@ def train_domain_adapter(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
-    # if mode == 'task':
-    #     logger = WandbLogger(
-    #     save_dir=str(exp_dir),
-    #     project=f"MNLI_{pretrained_model_name}",
-    #     job_type="task adapter",
-    #     group=source_target,
-    # )
-    # else:
-    #     logger = WandbLogger(
-    #     save_dir=str(exp_dir),
-    #     project=f"MNLI_{pretrained_model_name}",
-    #     job_type=f"domain task adapter {loss}",
-    #     group=source_target,
-    # )
+    run_id = wandb.util.generate_id()
+    exp_dir = exp_dir.joinpath(run_id)
 
-    # logger.watch(model, log="gradients", log_freq=log_freq)
+    if mode == 'task':
+        logger = WandbLogger(
+        save_dir=exp_dir,
+        id = run_id,
+        project=f"MNLI_{pretrained_model_name}",
+        job_type="task adapter",
+        group=source_target,
+    )
+    else:
+        logger = WandbLogger(
+        save_dir=exp_dir,
+        id = run_id,
+        project=f"MNLI_{pretrained_model_name}",
+        job_type=f"domain task adapter}",
+        group=source_target,
+    )
+
+    checkpoints_dir = exp_dir.joinpath("checkpoints")
+    checkpoints_dir.mkdir(parents=True)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
@@ -145,9 +144,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
-        # logger=logger,
+        logger=logger,
     )
 
     dm.setup("fit")
@@ -167,7 +166,7 @@ def train_domain_adapter(
     )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
-    hparams_file = checkpoints_dir.joinpath("hparams.json")
+    hparams_file = exp_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)

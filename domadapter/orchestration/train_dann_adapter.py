@@ -11,6 +11,7 @@ from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
 from pytorch_lightning.loggers import WandbLogger
+import wandb
 
 @click.command()
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
@@ -80,17 +81,10 @@ def train_dann(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
-    checkpoints_dir = exp_dir.joinpath("dann_adapter", exp_name)
+    exp_dir = exp_dir.joinpath(source_target, "dann_adapter")
 
-    # Ask to delete if experiment exists
-    if checkpoints_dir.is_dir():
-        is_delete = Confirm.ask(f"{checkpoints_dir} already exists. Do you want to delete it?")
-        if is_delete:
-            shutil.rmtree(str(checkpoints_dir))
-            console.print(f"[red] Deleted {checkpoints_dir}")
-            checkpoints_dir.mkdir(parents=True)
-    else:
-        checkpoints_dir.mkdir(parents=True)
+    if not exp_dir.is_dir():
+        exp_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -127,14 +121,20 @@ def train_dann(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
+    run_id = wandb.util.generate_id()
+    exp_dir = exp_dir.joinpath(run_id)
+
     logger = WandbLogger(
-        save_dir=str(exp_dir),
+        save_dir=exp_dir,
+        id = run_id,
         project=f"MNLI_{pretrained_model_name}",
         job_type="DANN Adapter",
         group=source_target
     )
 
     # logger.watch(model, log="gradients", log_freq=log_freq)
+    checkpoints_dir = exp_dir.joinpath("checkpoints")
+    checkpoints_dir.mkdir(parents=True)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
@@ -167,7 +167,7 @@ def train_dann(
     test_loader = dm.test_dataloader()
     trainer.test(model, test_loader)
 
-    hparams_file = checkpoints_dir.joinpath("hparams.json")
+    hparams_file = exp_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)

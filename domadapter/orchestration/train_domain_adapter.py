@@ -8,9 +8,11 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning import seed_everything
 import json
+from pytorch_lightning.loggers import WandbLogger
 from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
+import wandb
 
 
 @click.command()
@@ -55,20 +57,10 @@ def train_domain_adapter(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
-    exp_dir = exp_dir.joinpath(source_target)
-    checkpoints_dir = exp_dir.joinpath(f"domain_adapter_{divergence}")
+    exp_dir = exp_dir.joinpath(source_target, f"domain_adapter_{divergence}")
 
-    # Ask to delete if experiment exists
-    if checkpoints_dir.is_dir():
-        is_delete = Confirm.ask(
-            f"{checkpoints_dir} already exists. Do you want to delete it?"
-        )
-        if is_delete:
-            shutil.rmtree(str(checkpoints_dir))
-            console.print(f"[red] Deleted {checkpoints_dir}")
-            checkpoints_dir.mkdir(parents=True)
-    else:
-        checkpoints_dir.mkdir(parents=True)
+    if not exp_dir.is_dir():
+        exp_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -101,14 +93,19 @@ def train_domain_adapter(
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
-    # logger = WandbLogger(
-    #     save_dir=str(exp_dir),
-    #     project=f"MNLI_{pretrained_model_name}",
-    #     job_type=f"domain adapter {loss}",
-    #     group=source_target,
-    # )
+    run_id = wandb.util.generate_id()
+    exp_dir = exp_dir.joinpath(run_id)
 
-    # logger.watch(model, log="gradients", log_freq=log_freq)
+    logger = WandbLogger(
+        save_dir=exp_dir,
+        id = run_id,
+        project=f"MNLI_{pretrained_model_name}",
+        job_type=f"domain adapter",
+        group=source_target,
+    )
+
+    checkpoints_dir = exp_dir.joinpath("checkpoints")
+    checkpoints_dir.mkdir(parents=True)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),
@@ -128,9 +125,9 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
-        # logger=logger,
+        logger=logger,
         gradient_clip_val=gradient_clip_norm
     )
 
@@ -147,14 +144,13 @@ def train_domain_adapter(
     )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
-    hparams_file = checkpoints_dir.joinpath("hparams.json")
+    hparams_file = exp_dir.joinpath("hparams.json")
 
     with open(hparams_file, "w") as fp:
         json.dump(hyperparams, fp)
 
     del model
     gc.collect()
-
 
 if __name__ == "__main__":
     train_domain_adapter()
