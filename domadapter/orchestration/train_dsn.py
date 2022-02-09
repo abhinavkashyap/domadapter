@@ -12,6 +12,7 @@ from domadapter.console import console
 from rich.prompt import Confirm
 import shutil
 import wandb
+import transformers
 
 
 @click.command()
@@ -80,8 +81,6 @@ def train_dsn(
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
 
-    wandb_dir = exp_dir.joinpath("wandb")
-    wandb_dir.mkdir(parents=True)
 
     seed_everything(seed)
 
@@ -119,7 +118,6 @@ def train_dsn(
     # SETUP THE LOGGERS and Checkpointers
     ###########################################################################
     logger = WandbLogger(
-        save_dir=wandb_dir,
         project=f"MNLI_{pretrained_model_name}",
         job_type="DSN",
         group=source_target,
@@ -129,6 +127,10 @@ def train_dsn(
     print(f"run id {logger.experiment.id}")
     run_id = logger.experiment.id
     exp_dir = exp_dir.joinpath(run_id)
+
+    wandb_dir = exp_dir.joinpath("wandb")
+    wandb_dir.mkdir(parents=True)
+    logger._save_dir = wandb_dir
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     # Ask to delete if experiment exists
     if checkpoints_dir.is_dir():

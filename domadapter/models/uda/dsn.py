@@ -53,7 +53,7 @@ class DSN(pl.LightningModule):
 
         self.shared_encoder = nn.Sequential(
             nn.Linear(
-                in_features=hparams["hidden_size"],
+                in_features=self.config.hidden_size,
                 out_features=hparams["hidden_size"],
             ),
             nn.ReLU(inplace=True),
@@ -61,7 +61,7 @@ class DSN(pl.LightningModule):
 
         self.private_source_encoder = nn.Sequential(
             nn.Linear(
-                in_features=hparams["hidden_size"],
+                in_features=self.config.hidden_size,
                 out_features=hparams["hidden_size"],
             ),
             nn.ReLU(inplace=True),
@@ -69,7 +69,7 @@ class DSN(pl.LightningModule):
 
         self.private_target_encoder = nn.Sequential(
             nn.Linear(
-                in_features=hparams["hidden_size"],
+                in_features=self.config.hidden_size,
                 out_features=hparams["hidden_size"],
             ),
             nn.ReLU(inplace=True),
@@ -78,7 +78,7 @@ class DSN(pl.LightningModule):
         self.shared_decoder = nn.Sequential(
             nn.Linear(
                 in_features=hparams["hidden_size"],
-                out_features=hparams["hidden_size"],
+                out_features=self.config.hidden_size,
             )
         )
 
