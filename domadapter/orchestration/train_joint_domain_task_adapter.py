@@ -136,7 +136,7 @@ def train_domain_task_adapter(
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
         gradient_clip_val=gradient_clip_norm,
-        # gpus=str(gpu),
+        gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
     )
