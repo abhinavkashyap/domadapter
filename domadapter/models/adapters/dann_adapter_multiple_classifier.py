@@ -128,17 +128,17 @@ class DANNAdapter(pl.LightningModule):
             src_grl_features = GradientReversal.apply(src_features, alpha)
             trg_grl_features = GradientReversal.apply(trg_features, alpha)
 
-            src_taskclf_logits = self.task_classifier(src_features[0], 0)
-            src_domclf_logits = self.domain_classifier(src_grl_features[0], 0)
-            for layer in range(1,hidden_states.size(0)):
-                src_taskclf_logits = torch.cat((src_taskclf_logits, self.task_classifier(src_features[layer], layer)), 0)
-                src_domclf_logits = torch.cat((src_domclf_logits, self.domain_classifier(src_grl_features[layer], layer)), 0)
+            src_taskclf_logits = self.task_classifier(src_features[9], 0)
+            src_domclf_logits = self.domain_classifier(src_grl_features[9], 0)
+            for layer in range(10,hidden_states.size(0)):
+                src_taskclf_logits = torch.cat((src_taskclf_logits, self.task_classifier(src_features[layer], layer-9)), 0)
+                src_domclf_logits = torch.cat((src_domclf_logits, self.domain_classifier(src_grl_features[layer], layer-9)), 0)
 
-            trg_taskclf_logits = self.task_classifier(trg_features[0], 0)
-            trg_domclf_logits = self.domain_classifier(trg_grl_features[0], 0)
-            for layer in range(1,hidden_states.size(0)):
-                trg_taskclf_logits = torch.cat((trg_taskclf_logits, self.task_classifier(trg_features[layer], layer)), 0)
-                trg_domclf_logits = torch.cat((trg_domclf_logits, self.domain_classifier(trg_grl_features[layer], layer)), 0)
+            trg_taskclf_logits = self.task_classifier(trg_features[9], 0)
+            trg_domclf_logits = self.domain_classifier(trg_grl_features[9], 0)
+            for layer in range(10,hidden_states.size(0)):
+                trg_taskclf_logits = torch.cat((trg_taskclf_logits, self.task_classifier(trg_features[layer], layer-9)), 0)
+                trg_domclf_logits = torch.cat((trg_domclf_logits, self.domain_classifier(trg_grl_features[layer], layer-9)), 0)
 
         else:
             src_taskclf_logits = self.task_classifier(src_features[0], 0)

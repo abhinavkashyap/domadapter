@@ -7,7 +7,7 @@ class TaskClassifierModule(nn.Module):
         self.linear_hidden = nn.ModuleList(
             [
                 nn.Linear(in_features=768, out_features=hparams["hidden_size"])
-                for i in range(12)
+                for i in range(3)
             ]
         )  # 768 had to be hardcoded here ;-;
         self.linear_hidden_same = nn.ModuleList(
@@ -16,7 +16,7 @@ class TaskClassifierModule(nn.Module):
                     in_features=hparams["hidden_size"],
                     out_features=hparams["hidden_size"],
                 )
-                for i in range(12)
+                for i in range(3)
             ]
         )
         self.prediction_head = nn.ModuleList(
@@ -25,7 +25,7 @@ class TaskClassifierModule(nn.Module):
                     in_features=hparams["hidden_size"],
                     out_features=hparams["num_classes"],
                 )
-                for i in range(12)
+                for i in range(3)
             ]
         )
 
