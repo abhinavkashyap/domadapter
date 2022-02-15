@@ -3,7 +3,7 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
-from domadapter.models.adapters.domain_task_adapter import DomainTaskAdapter
+from domadapter.models.adapters.joint_domain_task_adapter import JointDomainTaskAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
@@ -25,20 +25,23 @@ import wandb
     "--padding", type=str, help="Add padding while tokenizing upto max length"
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
+@click.option("--divergence", type=str, help="divergence on which domain adapter is to be trained")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
-@click.option("--mode", type=str, help="Train task adapter or train domain and task adapter")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
-def train_domain_adapter(
+@click.option("--gradient_clip_norm", type=float, help="Clips the graident if the norm is grater than this value",
+              required=False, default=5.0)
+
+def train_domain_task_adapter(
     bsz,
     dataset_cache_dir,
     pretrained_model_name,
@@ -46,7 +49,6 @@ def train_domain_adapter(
     train_proportion,
     dev_proportion,
     test_proportion,
-    mode,
     num_classes,
     max_seq_length,
     padding,
@@ -54,6 +56,7 @@ def train_domain_adapter(
     exp_dir,
     seed,
     log_freq,
+    gradient_clip_norm,
     lr,
     epochs,
     gpu,
@@ -61,10 +64,7 @@ def train_domain_adapter(
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
 
-    if mode == 'task':
-        exp_dir = exp_dir.joinpath(source_target, "task_adapter_only")
-    else:
-        exp_dir = exp_dir.joinpath(source_target, f"task_adapter_{divergence}")
+    exp_dir = exp_dir.joinpath(source_target, f"joint_domain_task_adapter")
 
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
@@ -80,12 +80,12 @@ def train_domain_adapter(
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
-        "loss": str(divergence),
-        "mode": str(mode),
+        "divergence": str(divergence),
         "seed": seed,
         "learning_rate": lr,
         "epochs": int(epochs),
         "gpu": gpu,
+        "gradient_clip_norm": gradient_clip_norm,
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
         "padding": str(padding),
@@ -97,7 +97,7 @@ def train_domain_adapter(
     dm = DataModuleSourceTarget(hyperparams)
     dm.prepare_data()
 
-    model = DomainTaskAdapter(hyperparams)
+    model = JointDomainTaskAdapter(hyperparams)
 
     ###########################################################################
     # SETUP THE LOGGERS and Checkpointers
@@ -105,22 +105,13 @@ def train_domain_adapter(
     run_id = wandb.util.generate_id()
     exp_dir = exp_dir.joinpath(run_id)
 
-    if mode == 'task':
-        logger = WandbLogger(
-        save_dir=exp_dir,
-        id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
-        job_type="task adapter",
-        group=source_target,
-    )
-    else:
-        logger = WandbLogger(
-        save_dir=exp_dir,
-        id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
-        job_type=f"domain task adapter",
-        group=source_target,
-    )
+    logger = WandbLogger(
+    save_dir=exp_dir,
+    id = run_id,
+    project=f"MNLI_{pretrained_model_name}",
+    job_type=f"Joint domain task adapter",
+    group=source_target,
+)
 
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     checkpoints_dir.mkdir(parents=True)
@@ -144,7 +135,8 @@ def train_domain_adapter(
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
-        gpus=str(gpu),
+        gradient_clip_val=gradient_clip_norm,
+        # gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
     )
@@ -159,10 +151,10 @@ def train_domain_adapter(
     trainer.test(model, test_loader)
 
     best_ckpt_path = checkpoint_callback.best_model_path
-    model = DomainTaskAdapter.load_from_checkpoint(best_ckpt_path)
+    model = JointDomainTaskAdapter.load_from_checkpoint(best_ckpt_path)
 
     model.save_adapter(
-        str(checkpoints_dir), f"task_adapter_{source_target}"
+        str(checkpoints_dir), f"adapter_{source_target}"
     )  # save adapter after loading model
     os.remove(best_ckpt_path)  # remove saved model
 
@@ -176,4 +168,4 @@ def train_domain_adapter(
 
 
 if __name__ == "__main__":
-    train_domain_adapter()
+    train_domain_task_adapter()
