@@ -25,6 +25,7 @@ import wandb
     "--padding", type=str, help="Add padding while tokenizing upto max length"
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
+@click.option("--domain-adapter-id", type=str, help="wandb id of domain adapter (same domain adapter will be used)")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
@@ -46,6 +47,7 @@ def train_domain_adapter(
     train_proportion,
     dev_proportion,
     test_proportion,
+    domain_adapter_id,
     mode,
     num_classes,
     max_seq_length,
@@ -60,6 +62,7 @@ def train_domain_adapter(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
+    domain_adapter_dir = exp_dir
 
     if mode == 'task':
         exp_dir = exp_dir.joinpath(source_target, "task_adapter_only")
@@ -68,6 +71,8 @@ def train_domain_adapter(
 
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
+
+    domain_adapter_dir = domain_adapter_dir.joinpath(source_target, "domain_adapter", str(domain_adapter_id), "checkpoints")
 
     seed_everything(seed)
 
@@ -79,6 +84,7 @@ def train_domain_adapter(
         "source_target": source_target,
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
+        "domain_adapter_dir": str(domain_adapter_dir),
         "exp_dir": str(exp_dir),
         "loss": str(divergence),
         "mode": str(mode),

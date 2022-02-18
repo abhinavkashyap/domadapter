@@ -60,7 +60,7 @@ class DomainTaskAdapter(pl.LightningModule):
                 f"Loading {self.hparams['source_target']} domain adapter with {self.hparams['loss']} loss", spinner="monkey"
             ):
                 # load domain adapter to PLM
-                self.model.load_adapter(os.path.join(hparams["exp_dir"], f"domain_adapter_{self.hparams['loss']}"))
+                self.model.load_adapter(hparams["domain_adapter_dir"])
             # add task adapter to PLM
             self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
             # add classification head to task adapter
