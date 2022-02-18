@@ -57,7 +57,7 @@ def train_domain_adapter(
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
-    exp_dir = exp_dir.joinpath(source_target, f"domain_adapter_{divergence}")
+    exp_dir = exp_dir.joinpath(source_target, f"domain_adapter")
 
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)

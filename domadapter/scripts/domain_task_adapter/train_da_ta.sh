@@ -9,6 +9,7 @@ EXP_DIR=${OUTPUT_DIR}
 SEED=1729
 DIVERGENCE=coral
 MODE=domain
+DOMAIN_ADAPTER_WANDB_id=2ardvvq1
 BSZ=4
 EPOCHS=1
 MAX_SEQ_LENGTH=128
@@ -29,6 +30,7 @@ for i in "fiction"; do
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \
+            --domain-adapter-id ${DOMAIN_ADAPTER_WANDB_id} \
             --gpu ${GPU} \
             --mode ${MODE} \
             --num-classes ${NUM_CLASSES} \
