@@ -25,7 +25,6 @@ import wandb
     "--padding", type=str, help="Add padding while tokenizing upto max length"
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
-@click.option("--divergence", type=str, help="divergence on which domain adapter is to be trained")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")

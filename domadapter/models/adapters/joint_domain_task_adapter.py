@@ -92,7 +92,7 @@ class JointDomainTaskAdapter(pl.LightningModule):
         """
         # get the model output
         output = self.model(input_ids=input_ids, attention_mask=attention_mask)
-        hidden_states = output.hidden_states[1 : len(output.hidden_states)]
+        hidden_states = output.hidden_states[9 : len(output.hidden_states)]
         return hidden_states, output.logits
 
     def save_adapter(self, location, adapter_name):
