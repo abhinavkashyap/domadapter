@@ -2,18 +2,18 @@
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 # losses to choose from coral, cmd, mkmmd
 
-TRAIN_PROP=0.0001
-DEV_PROP=0.001
-TEST_PROP=0.003
+TRAIN_PROP=1.0
+DEV_PROP=1.0
+TEST_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
-DIVERGENCE=coral
+DIVERGENCE=mkmmd
 MODE=domain
-DOMAIN_ADAPTER_WANDB_id=2urnz6wx
-BSZ=4
-EPOCHS=1
+DOMAIN_ADAPTER_WANDB_id=jqjlsvhw
+BSZ=32
+EPOCHS=10
 REDUCTION_FACTOR=16
-SKIP_LAYERS=-1
+SKIP_LAYERS=0,1,2,3,4,5,6,7
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3

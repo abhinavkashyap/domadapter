@@ -2,16 +2,16 @@
 # Train domain adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 # divergences to choose from coral, cmd, mkmmd
 
-TRAIN_PROP=0.0001
-DEV_PROP=0.001
+TRAIN_PROP=1.0
+DEV_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
 SEED=1729
-BSZ=4
+BSZ=32
 DIVERGENCE=mkmmd
-EPOCHS=3
+EPOCHS=10
 MAX_SEQ_LENGTH=128
-REDUCTION_FACTOR=None
-SKIP_LAYERS=1,2,3,4
+REDUCTION_FACTOR=16
+SKIP_LAYERS=0,1,2,3,4,5,6,7,8,9,10
 PADDING=max_length
 LR=1e-05
 GPU=0

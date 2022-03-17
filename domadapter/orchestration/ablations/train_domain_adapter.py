@@ -76,7 +76,7 @@ def train_domain_adapter(
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
         "seed": seed,
-        "reduction_factor": reduction_factor,
+        "reduction_factor": int(reduction_factor),
         "leave_out": skip_layers,
         "loss": str(divergence),
         "learning_rate": lr,
@@ -103,11 +103,11 @@ def train_domain_adapter(
     exp_dir = exp_dir.joinpath(run_id)
 
     if reduction_factor != "None" and skip_layers != "None":
-        job_type = f"domain adapter {reduction_factor} {skip_layers}"
+        job_type = f"domain adapter {reduction_factor}RF {skip_layers}SL"
     elif reduction_factor != "None":
-        job_type = f"domain adapter {reduction_factor}"
+        job_type = f"domain adapter {reduction_factor}RF"
     elif skip_layers != "None":
-        job_type = f"domain adapter {skip_layers}"
+        job_type = f"domain adapter {skip_layers}SL"
 
     print(job_type)
 
@@ -132,7 +132,7 @@ def train_domain_adapter(
         monitor="val/divergence", patience=2, verbose=False, mode="min"
     )
 
-    callbacks = [checkpoint_callback, early_stop_callback]
+    callbacks = [checkpoint_callback]
 
     trainer = Trainer(
         limit_train_batches=train_proportion,
