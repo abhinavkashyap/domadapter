@@ -230,6 +230,7 @@ class DANN(pl.LightningModule):
             "train/taskclf_loss": class_loss,
             "train/domain_loss": dom_loss,
             "train/loss": loss,
+            "loss": loss
         }
 
         for key, val in metrics.items():
