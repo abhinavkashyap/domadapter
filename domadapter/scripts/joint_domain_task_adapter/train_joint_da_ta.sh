@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 # losses to choose from coral, cmd, mkmmd
+# data_module to choose from mnli, sa (num_classes 2)
 
 TRAIN_PROP=1.0
 DEV_PROP=1.0
@@ -9,6 +10,7 @@ EXP_DIR=${OUTPUT_DIR}
 SEEDS=(1729 100 1000)
 DIVERGENCE=mkmmd
 BSZ=32
+DATA_MODULE=sa
 EPOCHS=10
 MAX_SEQ_LENGTH=128
 PADDING=max_length
@@ -35,6 +37,7 @@ for src in "${SRC_DOMAINS[@]}"; do
               --pretrained-model-name "bert-base-uncased" \
               --seed ${SEED} \
               --divergence ${DIVERGENCE} \
+              --data-module ${DATA_MODULE} \
               --train-proportion ${TRAIN_PROP} \
               --dev-proportion ${DEV_PROP} \
               --test-proportion ${TEST_PROP} \
