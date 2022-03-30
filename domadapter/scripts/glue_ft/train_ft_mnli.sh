@@ -13,7 +13,7 @@ PADDING=max_length
 NUM_CLASSES=3
 LR=2e-05
 GPU=0
-PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_task_adapter.py"
+PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_ft.py"
 DOMAINS=("fiction_travel" "travel_slate" "slate_government" "government_telephone" "telephone_fiction")
 
 for src in "${DOMAINS[@]}"; do
