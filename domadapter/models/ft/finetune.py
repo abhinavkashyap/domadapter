@@ -27,7 +27,7 @@ class FT(pl.LightningModule):
         self.save_hyperparameters(hparams)
 
         # config
-        self.config = AutoConfig.from_pretrained(self.hparams["pretrained_model_name"])
+        self.config = AutoConfig.from_pretrained(self.hparams["pretrained_model_name"], num_labels=hparams["num_classes"])
 
         # load the model weights
         with console.status(
