@@ -20,7 +20,7 @@ for src in "${DOMAINS[@]}"; do
     for SEED in ${SEEDS[@]}; do
         python ${PYTHON_FILE} \
             --dataset-cache-dir ${DATASET_CACHE_DIR} \
-            --source-target  "${src}_${trg}" \
+            --source-target  ${src} \
             --pretrained-model-name "bert-base-uncased" \
             --seed ${SEED} \
             --train-proportion ${TRAIN_PROP} \
