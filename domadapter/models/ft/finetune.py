@@ -2,7 +2,7 @@ import torch
 import os
 import pytorch_lightning as pl
 from typing import Any, Optional, Dict, List, Union
-from transformers import AutoModelWithHeads
+from transformers import AutoModelForSequenceClassification
 from transformers import AutoConfig
 from domadapter.console import console
 import torch.nn as nn
@@ -33,7 +33,7 @@ class FT(pl.LightningModule):
         with console.status(
             f"Loading {self.hparams['pretrained_model_name']} Model", spinner="monkey"
         ):
-            self.model = AutoModelWithHeads.from_pretrained(
+            self.model = AutoModelForSequenceClassification.from_pretrained(
                 self.hparams["pretrained_model_name"], config=self.config
             )
         console.print(f"[green] Loaded {self.hparams['pretrained_model_name']} base model")
