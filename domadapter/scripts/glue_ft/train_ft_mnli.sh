@@ -14,6 +14,8 @@ NUM_CLASSES=3
 LR=2e-05
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_ft.py"
+# only first domain before "_" in DOMAINS will be considered for training.
+# For eg, in "fiction_travel" model will be finetuned on "fiction" domain
 DOMAINS=("fiction_travel" "travel_slate" "slate_government" "government_telephone" "telephone_fiction")
 
 for src in "${DOMAINS[@]}"; do
