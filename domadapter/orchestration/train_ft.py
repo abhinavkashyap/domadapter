@@ -27,7 +27,13 @@ import wandb
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
+@click.option("--test-proportion", type=float, help="Test on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
+@click.option(
+    "--num-classes",
+    type=int,
+    help="Number of classes for PLM",
+)
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
@@ -43,7 +49,9 @@ def train_ft(
     divergence,
     train_proportion,
     dev_proportion,
+    test_proportion,
     max_seq_length,
+    num_classes,
     padding,
     source_target,
     exp_dir,
@@ -67,6 +75,8 @@ def train_ft(
         "bsz": bsz,
         "train_proportion": train_proportion,
         "dev_proportion": dev_proportion,
+        "test_proportion": test_proportion,
+        "num_classes": int(num_classes),
         "source_target": source_target,
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
@@ -121,6 +131,7 @@ def train_ft(
     trainer = Trainer(
         limit_train_batches=train_proportion,
         limit_val_batches=dev_proportion,
+        limit_test_batches=test_proportion,
         callbacks=callbacks,
         terminate_on_nan=True,
         log_every_n_steps=log_freq,
@@ -134,6 +145,10 @@ def train_ft(
     train_loader = dm.train_dataloader()
     val_loader = dm.val_dataloader()
     trainer.fit(model, train_loader, val_loader)
+
+    dm.setup("test")
+    test_loader = dm.test_dataloader()
+    trainer.test(model, test_loader)
 
     hparams_file = exp_dir.joinpath("hparams.json")
 
