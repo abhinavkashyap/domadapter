@@ -89,7 +89,7 @@ class FT(pl.LightningModule):
                 {
                     "scheduler": lr_scheduler,
                     "reduce_lr_on_plateau": True,
-                    "monitor": "source_val/loss",
+                    "monitor": "val/loss",
                     "interval": "epoch",
                 }
             ],
