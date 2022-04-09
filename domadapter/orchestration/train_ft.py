@@ -18,7 +18,7 @@ import wandb
 @click.command()
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
 @click.option(
-    "--source-target", type=str, help="Source Domain on which model will be finetuned"
+    "--source-target", type=str, help="Domain on which model will be finetuned"
 )
 @click.option("--pretrained-model-name", type=str, help="PLM to be used from HF")
 @click.option(
