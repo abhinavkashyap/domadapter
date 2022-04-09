@@ -9,7 +9,6 @@ import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from transformers.adapters.composition import Stack
 import numpy as np
 
 import torchmetrics
