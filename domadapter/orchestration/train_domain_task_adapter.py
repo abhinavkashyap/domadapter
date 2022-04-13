@@ -3,6 +3,7 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
+from domadapter.datamodules.sa_dm import SADataModuleSourceTarget
 from domadapter.models.adapters.domain_task_adapter import DomainTaskAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
@@ -10,8 +11,6 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning import seed_everything
 import json
 from domadapter.console import console
-from rich.prompt import Confirm
-import shutil
 import wandb
 
 
@@ -26,6 +25,7 @@ import wandb
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--domain-adapter-id", type=str, help="wandb id of domain adapter (same domain adapter will be used)")
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
@@ -47,6 +47,7 @@ def train_domain_adapter(
     train_proportion,
     dev_proportion,
     test_proportion,
+    data_module,
     domain_adapter_id,
     mode,
     num_classes,
@@ -100,7 +101,13 @@ def train_domain_adapter(
     ###########################################################################
     # Setup the dataset
     ###########################################################################
-    dm = DataModuleSourceTarget(hyperparams)
+    if data_module == "mnli":
+        dm = DataModuleSourceTarget(hyperparams)
+        project_name = f"MNLI_{pretrained_model_name}"
+    elif data_module == "sa":
+        dm = SADataModuleSourceTarget(hyperparams)
+        project_name = f"SA_{pretrained_model_name}"
+
     dm.prepare_data()
 
     model = DomainTaskAdapter(hyperparams)
@@ -115,7 +122,7 @@ def train_domain_adapter(
         logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type="task adapter",
         group=source_target,
     )
@@ -123,7 +130,7 @@ def train_domain_adapter(
         logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type=f"domain task adapter",
         group=source_target,
     )

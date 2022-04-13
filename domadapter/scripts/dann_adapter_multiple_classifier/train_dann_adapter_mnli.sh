@@ -8,6 +8,7 @@ EXP_DIR=${OUTPUT_DIR}
 SEEDS=(1729 100 1000)
 HIDDEN_SIZE=100
 BSZ=32
+DATA_MODULE=mnli
 EPOCHS=10
 MAX_SEQ_LENGTH=128
 PADDING=max_length
@@ -41,6 +42,7 @@ for src in "${SRC_DOMAINS[@]}"; do
                     --dev-proportion ${DEV_PROP} \
                     --test-proportion ${TEST_PROP} \
                     --gpu ${GPU} \
+                    --data-module ${DATA_MODULE} \
                     --hidden-size ${HIDDEN_SIZE} \
                     --num-classes ${NUM_CLASSES} \
                     --max-seq-length ${MAX_SEQ_LENGTH} \

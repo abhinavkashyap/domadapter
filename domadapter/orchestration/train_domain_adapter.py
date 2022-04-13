@@ -3,6 +3,7 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
+from domadapter.datamodules.sa_dm import SADataModuleSourceTarget
 from domadapter.models.adapters.domain_adapter import DomainAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
@@ -26,6 +27,7 @@ import wandb
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
 @click.option("--divergence", type=str, help="divergence on which domain adapter is to be trained")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
@@ -42,6 +44,7 @@ def train_domain_adapter(
     dataset_cache_dir,
     pretrained_model_name,
     divergence,
+    data_module,
     train_proportion,
     dev_proportion,
     max_seq_length,
@@ -85,7 +88,13 @@ def train_domain_adapter(
     ###########################################################################
     # Setup the dataset
     ###########################################################################
-    dm = DataModuleSourceTarget(hyperparams)
+    if data_module == "mnli":
+        dm = DataModuleSourceTarget(hyperparams)
+        project_name = f"MNLI_{pretrained_model_name}"
+    elif data_module == "sa":
+        dm = SADataModuleSourceTarget(hyperparams)
+        project_name = f"SA_{pretrained_model_name}"
+
     dm.prepare_data()
 
     model = DomainAdapter(hyperparams)
@@ -99,7 +108,7 @@ def train_domain_adapter(
     logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type=f"domain adapter",
         group=source_target,
     )

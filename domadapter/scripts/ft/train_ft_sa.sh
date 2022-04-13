@@ -6,18 +6,18 @@ DEV_PROP=1.0
 TEST_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
 SEEDS=(1729 100 1000)
+DATA_MODULE=sa
 BSZ=32
 EPOCHS=5
-DATA_MODULE=mnli
 MAX_SEQ_LENGTH=128
 PADDING=max_length
-NUM_CLASSES=3
+NUM_CLASSES=2
 LR=2e-05
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_ft.py"
 # only first domain before "_" in DOMAINS will be considered for training.
 # For eg, in "fiction_travel" model will be finetuned on "fiction" domain
-DOMAINS=("fiction_travel" "travel_slate" "slate_government" "government_telephone" "telephone_fiction")
+DOMAINS=("apparel_baby" "baby_books" "books_camera_photo" "camera_photo_MR" "MR_apparel")
 
 for src in "${DOMAINS[@]}"; do
     for SEED in ${SEEDS[@]}; do

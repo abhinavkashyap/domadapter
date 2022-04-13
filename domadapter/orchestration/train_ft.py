@@ -1,17 +1,14 @@
 import click
 import pathlib
 import gc
-import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
+from domadapter.datamodules.sa_dm import SADataModuleSourceTarget
 from domadapter.models.ft.finetune import FT
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning import seed_everything
 import json
 from pytorch_lightning.loggers import WandbLogger
-from domadapter.console import console
-from rich.prompt import Confirm
-import shutil
 import wandb
 
 
@@ -34,6 +31,7 @@ import wandb
     type=int,
     help="Number of classes for PLM",
 )
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
@@ -52,6 +50,7 @@ def train_ft(
     max_seq_length,
     num_classes,
     padding,
+    data_module,
     source_target,
     exp_dir,
     seed,
@@ -92,7 +91,13 @@ def train_ft(
     ###########################################################################
     # Setup the dataset
     ###########################################################################
-    dm = DataModuleSourceTarget(hyperparams)
+    if data_module == "mnli":
+        dm = DataModuleSourceTarget(hyperparams)
+        project_name = f"MNLI_{pretrained_model_name}"
+    elif data_module == "sa":
+        dm = SADataModuleSourceTarget(hyperparams)
+        project_name = f"SA_{pretrained_model_name}"
+
     dm.prepare_data()
 
     model = FT(hyperparams)
@@ -106,7 +111,7 @@ def train_ft(
     logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type=source_target.split("_")[0],
         group="fine-tune",
     )

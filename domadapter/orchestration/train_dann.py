@@ -2,6 +2,7 @@ import click
 import pathlib
 import gc
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
+from domadapter.datamodules.sa_dm import SADataModuleSourceTarget
 from domadapter.models.uda.dann import DANN
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
@@ -26,6 +27,7 @@ import wandb
     help="Number of classes for task adapter classification head",
 )
 @click.option("--bsz", type=int, help="batch size")
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
@@ -62,6 +64,7 @@ def train_dann(
     pretrained_model_name,
     train_proportion,
     dev_proportion,
+    data_module,
     test_proportion,
     hidden_size,
     num_classes,
@@ -112,7 +115,13 @@ def train_dann(
     ###########################################################################
     # Setup the dataset
     ###########################################################################
-    dm = DataModuleSourceTarget(hyperparams)
+    if data_module == "mnli":
+        dm = DataModuleSourceTarget(hyperparams)
+        project_name = f"MNLI_{pretrained_model_name}"
+    elif data_module == "sa":
+        dm = SADataModuleSourceTarget(hyperparams)
+        project_name = f"SA_{pretrained_model_name}"
+
     dm.prepare_data()
 
     model = DANN(hyperparams)
@@ -126,7 +135,7 @@ def train_dann(
     logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type="DANN",
         group=source_target,
     )

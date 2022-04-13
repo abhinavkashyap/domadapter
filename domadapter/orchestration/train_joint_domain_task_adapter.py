@@ -28,7 +28,7 @@ import wandb
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--data-module", type=str, help="data module on which trained model is to trained (MNLI/SA)")
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")

@@ -9,6 +9,7 @@ SEEDS=(1729 100 1000)
 HIDDEN_SIZE=100
 BSZ=32
 EPOCHS=10
+DATA_MODULE=mnli
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3
@@ -34,6 +35,7 @@ for src in "${SRC_DOMAINS[@]}"; do
                   --source-target  "${src}_${trg}" \
                   --pretrained-model-name "bert-base-uncased" \
                   --seed ${SEED} \
+                  --data-module ${DATA_MODULE} \
                   --train-proportion ${TRAIN_PROP} \
                   --dev-proportion ${DEV_PROP} \
                   --test-proportion ${TEST_PROP} \
