@@ -10,12 +10,13 @@ SEEDS=(1729 100 1000)
 DIVERGENCE=mkmmd
 BSZ=32
 DATA_MODULE=sa
-EPOCHS=10
+EPOCHS=20
 MAX_SEQ_LENGTH=128
 PADDING=max_length
+REDUCTION_FACTOR=16
 NUM_CLASSES=2
 LR=1e-04
-GPU=0
+GPU=1
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_joint_domain_task_adapter.py"
 SRC_DOMAINS=("apparel" "baby" "books" "camera_photo" "MR")
 TRG_DOMAINS=("apparel" "baby" "books" "camera_photo" "MR")
@@ -33,6 +34,7 @@ for src in "${SRC_DOMAINS[@]}"; do
               --pretrained-model-name "bert-base-uncased" \
               --seed ${SEED} \
               --divergence ${DIVERGENCE} \
+              --reduction-factor ${REDUCTION_FACTOR} \
               --data-module ${DATA_MODULE} \
               --train-proportion ${TRAIN_PROP} \
               --dev-proportion ${DEV_PROP} \

@@ -12,6 +12,7 @@ EPOCHS=10
 DATA_MODULE=sa
 MAX_SEQ_LENGTH=128
 PADDING=max_length
+REDUCTION_FACTOR=32
 LR=1e-05
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_adapter.py"
@@ -30,6 +31,7 @@ for src in "${SRC_DOMAINS[@]}"; do
                 --source-target  "${src}_${trg}" \
                 --pretrained-model-name "bert-base-uncased" \
                 --seed ${SEED} \
+                --reduction-factor ${REDUCTION_FACTOR} \
                 --data-module ${DATA_MODULE} \
                 --divergence ${DIVERGENCE} \
                 --train-proportion ${TRAIN_PROP} \

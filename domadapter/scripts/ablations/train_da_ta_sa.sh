@@ -6,44 +6,43 @@ TRAIN_PROP=1.0
 DEV_PROP=1.0
 TEST_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
-SEEDS=(1729 100 1000)
+SEED=(100 1000)
 DIVERGENCE=mkmmd
 MODE=domain
 BSZ=32
-DATA_MODULE=mnli
+DATA_MODULE=sa
 EPOCHS=10
+# REDUCTION_FACTOR=32
+REDUCTION_FACTOR=(2 4 8 16 32 64 128)
+SKIP_LAYERS="None"
+# SKIP_LAYERS=(0 0,1 0,1,2 0,1,2,3 0,1,2,3,4 0,1,2,3,4,5 0,1,2,3,4,5,6 0,1,2,3,4,5,6,7 0,1,2,3,4,5,6,7,8 0,1,2,3,4,5,6,7,8,9)
 MAX_SEQ_LENGTH=128
-REDUCTION_FACTOR=32
 PADDING=max_length
-NUM_CLASSES=3
+NUM_CLASSES=2
 LR=1e-04
 GPU=0
-PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_task_adapter.py"
-SRC_DOMAINS=("slate")
-TRG_DOMAINS=("travel")
-DOMAIN_ADAPTER_WANDB_id=(2e8e35pc 1wnnonzk 1itswhu7)
+PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/ablations/train_domain_task_adapter.py"
+DOMAINS=("camera_photo_baby")
+DOMAIN_ADAPTER_WANDB_id=(1889z6y6 jy8w2flf 2zb6frrr 27mkjolx 169bhr85 18tib1sg 1sx1hmr4 3k9m4dgr 26c1jyrh 8rbtwzht 1yc88soo 1p1hj1lk 1dxej9aa 1fl2is84)
 COUNTER=0
 
-for src in "${SRC_DOMAINS[@]}"; do
-    for trg in "${TRG_DOMAINS[@]}"; do
-      for SEED in ${SEEDS[@]}; do
-          if [ ${src} = ${trg} ]; then
-            echo "SKIPPING ${src}-${trg}";
-            continue
-          else
+for domain in "${DOMAINS[@]}"; do
+    for red in "${REDUCTION_FACTOR[@]}"; do
+        for seed in "${SEED[@]}"; do
             echo ${COUNTER}
             python ${PYTHON_FILE} \
                 --dataset-cache-dir ${DATASET_CACHE_DIR} \
-                --source-target  "${src}_${trg}" \
+                --source-target  "${domain}" \
                 --pretrained-model-name "bert-base-uncased" \
-                --seed ${SEED} \
-                --reduction-factor ${REDUCTION_FACTOR} \
-                --data-module ${DATA_MODULE} \
+                --seed ${seed} \
                 --divergence ${DIVERGENCE} \
+                --data-module ${DATA_MODULE} \
                 --train-proportion ${TRAIN_PROP} \
                 --dev-proportion ${DEV_PROP} \
                 --test-proportion ${TEST_PROP} \
                 --domain-adapter-id ${DOMAIN_ADAPTER_WANDB_id[COUNTER]} \
+                --reduction-factor ${red} \
+                --skip-layers ${SKIP_LAYERS} \
                 --gpu ${GPU} \
                 --mode ${MODE} \
                 --num-classes ${NUM_CLASSES} \
@@ -55,7 +54,6 @@ for src in "${SRC_DOMAINS[@]}"; do
                 --bsz ${BSZ} \
                 --exp-dir ${EXP_DIR}
             COUNTER=$[$COUNTER +1]
-          fi
-      done
+        done
     done
 done

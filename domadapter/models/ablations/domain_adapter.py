@@ -48,7 +48,7 @@ class DomainAdapter(pl.LightningModule):
         console.print(f"🤗 adapter config using reduction_factor as {self.reduction_factor}")
         console.print(f"🤗 adapter config skipping adapters on {self.leave_out} layers")
 
-        config = AdapterConfig.load("pfeiffer", reduction_factor=self.reduction_factor, leave_out=self.leave_out)
+        config = AdapterConfig.load("pfeiffer", reduction_factor=int(self.reduction_factor), leave_out=self.leave_out)
         # add adapter a new adapter
         self.model.add_adapter(f"domain_adapter_{self.hparams['source_target']}", config=config)
         # activate the adapter

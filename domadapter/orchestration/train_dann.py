@@ -142,7 +142,7 @@ def train_dann(
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     checkpoints_dir.mkdir(parents=True)
 
-    logger.watch(model, log="gradients", log_freq=log_freq)
+    # logger.watch(model, log="gradients", log_freq=log_freq)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=str(checkpoints_dir),

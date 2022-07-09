@@ -58,9 +58,9 @@ class DomainTaskAdapter(pl.LightningModule):
                 console.print(f"🤗 adapter config using reduction_factor as {self.reduction_factor}")
                 console.print(f"🤗 adapter config skipping adapters on {self.leave_out} layers")
 
-                config = AdapterConfig.load("pfeiffer", reduction_factor=self.reduction_factor, leave_out=self.leave_out)
+                config = AdapterConfig.load("pfeiffer", reduction_factor=int(self.reduction_factor), leave_out=self.leave_out)
                 # add task adapter to PLM
-                self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
+                self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}", config=config)
                 # add classification head to task adapter
                 self.model.add_classification_head(
                     f"task_adapter_{self.hparams['source_target']}",
@@ -81,7 +81,7 @@ class DomainTaskAdapter(pl.LightningModule):
             console.print(f"🤗 adapter config using reduction_factor as {self.reduction_factor}")
             console.print(f"🤗 adapter config skipping adapters on {self.leave_out} layers")
 
-            config = AdapterConfig.load("pfeiffer", reduction_factor=self.reduction_factor, leave_out=self.leave_out)
+            config = AdapterConfig.load("pfeiffer", reduction_factor=int(self.reduction_factor), leave_out=self.leave_out)
             # add task adapter to PLM
             self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}", config=config)
             # add classification head to task adapter

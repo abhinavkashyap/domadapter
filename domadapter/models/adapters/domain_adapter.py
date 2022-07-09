@@ -1,8 +1,7 @@
 import torch
 import pytorch_lightning as pl
 from typing import Any, Optional, Dict
-from transformers import AutoModelWithHeads
-from transformers import AutoConfig
+from transformers import AutoModelWithHeads, AdapterConfig, AutoConfig
 from domadapter.console import console
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -33,8 +32,10 @@ class DomainAdapter(pl.LightningModule):
                 self.hparams["pretrained_model_name"], config=self.config
             )
         console.print(f"[green] Loaded {self.hparams['pretrained_model_name']} model")
+
+        config = AdapterConfig.load("pfeiffer", reduction_factor=self.hparams['reduction_factor'])
         # add adapter a new adapter
-        self.model.add_adapter(f"domain_adapter_{self.hparams['source_target']}")
+        self.model.add_adapter(f"domain_adapter_{self.hparams['source_target']}", config=config)
         # activate the adapter
         self.model.train_adapter(f"domain_adapter_{self.hparams['source_target']}")
         # object to compute the divergence

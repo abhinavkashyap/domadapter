@@ -129,7 +129,7 @@ def train_ft(
         monitor="val/loss", patience=2, verbose=False, mode="min"
     )
 
-    callbacks = [checkpoint_callback, early_stop_callback]
+    callbacks = [checkpoint_callback]
 
     trainer = Trainer(
         limit_train_batches=train_proportion,

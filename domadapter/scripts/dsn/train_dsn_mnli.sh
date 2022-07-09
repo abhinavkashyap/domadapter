@@ -34,29 +34,29 @@ for src in "${SRC_DOMAINS[@]}"; do
               elif [ ${src} = "fiction" ] && [ ${trg} = "slate" ]; then
                 echo "SKIPPING ${src}-${trg}";
                 continue
-            else
-              python "${PYTHON_FILE}" \
-                  --dataset-cache-dir "${DATASET_CACHE_DIR}" \
-                  --source-target  "${src}_${trg}" \
-                  --pretrained-model-name "bert-base-uncased" \
-                  --seed ${SEED} \
-                  --train-proportion ${TRAIN_PROP} \
-                  --dev-proportion ${DEV_PROP} \
-                  --test-proportion ${TEST_PROP} \
-                  --gpu ${GPU} \
-                  --data-module ${DATA_MODULE} \
-                  --hidden-size ${HIDDEN_SIZE} \
-                  --num-classes ${NUM_CLASSES} \
-                  --max-seq-length ${MAX_SEQ_LENGTH} \
-                  --padding ${PADDING} \
-                  --lr "${LR}" \
-                  --log-freq 5 \
-                  --epochs ${EPOCHS} \
-                  --bsz ${BSZ} \
-                  --diff-weight ${DIFF_WEIGHT} \
-                  --sim-weight ${SIM_WEIGHT} \
-                  --recon-weight ${RECON_WEIGHT} \
-                  --exp-dir "${EXP_DIR}"
+              else
+                python "${PYTHON_FILE}" \
+                    --dataset-cache-dir "${DATASET_CACHE_DIR}" \
+                    --source-target  "${src}_${trg}" \
+                    --pretrained-model-name "bert-base-uncased" \
+                    --seed ${SEED} \
+                    --train-proportion ${TRAIN_PROP} \
+                    --dev-proportion ${DEV_PROP} \
+                    --test-proportion ${TEST_PROP} \
+                    --gpu ${GPU} \
+                    --data-module ${DATA_MODULE} \
+                    --hidden-size ${HIDDEN_SIZE} \
+                    --num-classes ${NUM_CLASSES} \
+                    --max-seq-length ${MAX_SEQ_LENGTH} \
+                    --padding ${PADDING} \
+                    --lr "${LR}" \
+                    --log-freq 5 \
+                    --epochs ${EPOCHS} \
+                    --bsz ${BSZ} \
+                    --diff-weight ${DIFF_WEIGHT} \
+                    --sim-weight ${SIM_WEIGHT} \
+                    --recon-weight ${RECON_WEIGHT} \
+                    --exp-dir "${EXP_DIR}"
               fi
               done
          done

@@ -10,15 +10,16 @@ SEEDS=(1729 100 1000)
 DIVERGENCE=mkmmd
 BSZ=32
 DATA_MODULE=mnli
-EPOCHS=10
+EPOCHS=20
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3
 LR=1e-04
-GPU=0
+REDUCTION_FACTOR=16
+GPU=1
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_joint_domain_task_adapter.py"
-SRC_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
-TRG_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
+SRC_DOMAINS=("telephone")
+TRG_DOMAINS=("government")
 
 for src in "${SRC_DOMAINS[@]}"; do
     for trg in "${TRG_DOMAINS[@]}"; do
@@ -26,7 +27,10 @@ for src in "${SRC_DOMAINS[@]}"; do
         if [ ${src} = ${trg} ]; then
           echo "SKIPPING ${src}-${trg}";
           continue
-        elif [ ${src} = "fiction" ] && [ ${trg} = "slate" ]; then
+        elif [ ${src} = "fiction" ] && [ ${trg} = "travel" ]; then
+          echo "SKIPPING ${src}-${trg}";
+          continue
+        elif [ ${src} = "government" ] && [ ${trg} = "travel" ]; then
           echo "SKIPPING ${src}-${trg}";
           continue
         else
@@ -37,6 +41,7 @@ for src in "${SRC_DOMAINS[@]}"; do
               --seed ${SEED} \
               --divergence ${DIVERGENCE} \
               --data-module ${DATA_MODULE} \
+              --reduction-factor ${REDUCTION_FACTOR} \
               --train-proportion ${TRAIN_PROP} \
               --dev-proportion ${DEV_PROP} \
               --test-proportion ${TEST_PROP} \

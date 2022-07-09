@@ -3,6 +3,7 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
+from domadapter.datamodules.sa_dm import SADataModuleSourceTarget
 from domadapter.models.ablations.domain_task_adapter import DomainTaskAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
@@ -28,6 +29,7 @@ import wandb
 @click.option("--domain-adapter-id", type=str, help="wandb id of domain adapter (same domain adapter will be used)")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
@@ -46,6 +48,7 @@ def train_domain_adapter(
     dataset_cache_dir,
     pretrained_model_name,
     divergence,
+    data_module,
     train_proportion,
     dev_proportion,
     test_proportion,
@@ -89,8 +92,8 @@ def train_domain_adapter(
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "domain_adapter_dir": str(domain_adapter_dir),
-        "reduction_factor": int(reduction_factor),
-        "leave_out": skip_layers,
+        "reduction_factor": reduction_factor,
+        "leave_out": str(skip_layers),
         "exp_dir": str(exp_dir),
         "loss": str(divergence),
         "mode": str(mode),
@@ -106,7 +109,13 @@ def train_domain_adapter(
     ###########################################################################
     # Setup the dataset
     ###########################################################################
-    dm = DataModuleSourceTarget(hyperparams)
+    if data_module == "mnli":
+        dm = DataModuleSourceTarget(hyperparams)
+        project_name = f"MNLI_{pretrained_model_name} Ablation"
+    elif data_module == "sa":
+        dm = SADataModuleSourceTarget(hyperparams)
+        project_name = f"SA_{pretrained_model_name} Ablation"
+
     dm.prepare_data()
 
     model = DomainTaskAdapter(hyperparams)
@@ -117,12 +126,10 @@ def train_domain_adapter(
     run_id = wandb.util.generate_id()
     exp_dir = exp_dir.joinpath(run_id)
 
-    if reduction_factor != "None" and skip_layers != "None":
-        job_type = f"task adapter {reduction_factor}RF {skip_layers}SL"
+    if skip_layers != "None":
+        job_type = f"task adapter {skip_layers} SL"
     elif reduction_factor != "None":
-        job_type = f"task adapter {reduction_factor}RF"
-    elif skip_layers != "None":
-        job_type = f"task adapter {skip_layers}SL"
+        job_type = f"task adapter {reduction_factor} RF"
 
     print(job_type)
 
@@ -130,7 +137,7 @@ def train_domain_adapter(
         logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type=job_type,
         group=source_target,
     )
@@ -138,7 +145,7 @@ def train_domain_adapter(
         logger = WandbLogger(
         save_dir=exp_dir,
         id = run_id,
-        project=f"MNLI_{pretrained_model_name}",
+        project=project_name,
         job_type="domain " + job_type,
         group=source_target,
     )

@@ -29,6 +29,7 @@ import wandb
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
 @click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
+@click.option("--reduction-factor", help="Factor by which the hidden size is reduced")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
@@ -48,6 +49,7 @@ def train_domain_task_adapter(
     pretrained_model_name,
     divergence,
     data_module,
+    reduction_factor,
     train_proportion,
     dev_proportion,
     test_proportion,
@@ -79,6 +81,7 @@ def train_domain_task_adapter(
         "dev_proportion": dev_proportion,
         "test_proportion": test_proportion,
         "source_target": source_target,
+        "reduction_factor": int(reduction_factor),
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
@@ -117,7 +120,7 @@ def train_domain_task_adapter(
     save_dir=exp_dir,
     id = run_id,
     project=project_name,
-    job_type=f"Joint domain task adapter",
+    job_type=f"Joint domain task adapter {reduction_factor}",
     group=source_target,
 )
 
@@ -131,7 +134,7 @@ def train_domain_task_adapter(
         monitor="source_val/loss",
     )
     early_stop_callback = EarlyStopping(
-        monitor="source_val/loss", patience=2, verbose=False, mode="min"
+        monitor="source_val/loss", patience=3, verbose=False, mode="min"
     )
 
     callbacks = [checkpoint_callback, early_stop_callback]
