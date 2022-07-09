@@ -7,7 +7,8 @@ TEST_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
 SEEDS=(1729 100 1000)
 BSZ=32
-EPOCHS=1
+EPOCHS=5
+DATA_MODULE=mnli
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=3
@@ -25,6 +26,7 @@ for src in "${DOMAINS[@]}"; do
             --source-target  ${src} \
             --pretrained-model-name "bert-base-uncased" \
             --seed ${SEED} \
+            --data-module ${DATA_MODULE} \
             --train-proportion ${TRAIN_PROP} \
             --dev-proportion ${DEV_PROP} \
             --test-proportion ${TEST_PROP} \

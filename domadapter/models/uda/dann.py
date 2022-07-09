@@ -153,28 +153,7 @@ class DANN(pl.LightningModule):
     def configure_optimizers(self):
         learning_rate = self.learning_rate
         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
-        lr_scheduler = ReduceLROnPlateau(
-            optimizer=optimizer,
-            mode="max",
-            factor=self.scheduler_factor,
-            patience=self.scheduler_patience,
-            threshold=self.scheduler_threshold,
-            threshold_mode="rel",
-            cooldown=self.scheduler_cooldown,
-            eps=self.scheduler_eps,
-            verbose=True,
-        )
-        return (
-            [optimizer],
-            [
-                {
-                    "scheduler": lr_scheduler,
-                    "reduce_lr_on_plateau": True,
-                    "monitor": "source_val/f1",
-                    "interval": "epoch",
-                }
-            ],
-        )
+        return optimizer
 
     def training_step(self, batch, batch_idx):
         """training step of DANN"""

@@ -5,35 +5,34 @@
 TRAIN_PROP=1.0
 DEV_PROP=1.0
 EXP_DIR=${OUTPUT_DIR}
-SEEDS=(1729 100 1000)
+SEED=(100 1000)
 BSZ=32
 DIVERGENCE=mkmmd
 EPOCHS=10
+DATA_MODULE=mnli
 MAX_SEQ_LENGTH=128
+REDUCTION_FACTOR=(2 4 8 16 32 64 128)
+SKIP_LAYERS="None"
+# SKIP_LAYERS=(0 0,1 0,1,2 0,1,2,3 0,1,2,3,4 0,1,2,3,4,5 0,1,2,3,4,5,6 0,1,2,3,4,5,6,7 0,1,2,3,4,5,6,7,8 0,1,2,3,4,5,6,7,8,9)
 PADDING=max_length
 LR=1e-05
-GPU=0
-PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_domain_adapter.py"
-SRC_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
-TRG_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
+GPU=1
+PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/ablations/train_domain_adapter.py"
+DOMAINS=("slate_travel")
 
-for src in "${SRC_DOMAINS[@]}"; do
-    for trg in "${TRG_DOMAINS[@]}"; do
-      for SEED in ${SEEDS[@]}; do
-          if [ ${src} = ${trg} ]; then
-            echo "SKIPPING ${src}-${trg}";
-            continue
-          elif [ ${src} = "fiction" ] && [ ${trg} = "slate" ]; then
-            echo "SKIPPING ${src}-${trg}";
-            continue
-          else
+for domain in "${DOMAINS[@]}"; do
+    for red in "${REDUCTION_FACTOR[@]}"; do
+        for seed in "${SEED[@]}"; do
             python ${PYTHON_FILE} \
                 --dataset-cache-dir ${DATASET_CACHE_DIR} \
-                --source-target  "${src}_${trg}" \
+                --source-target  "${domain}" \
                 --pretrained-model-name "bert-base-uncased" \
-                --seed ${SEED} \
+                --seed ${seed} \
                 --divergence ${DIVERGENCE} \
                 --train-proportion ${TRAIN_PROP} \
+                --reduction-factor ${red} \
+                --data-module ${DATA_MODULE} \
+                --skip-layers ${SKIP_LAYERS} \
                 --dev-proportion ${DEV_PROP} \
                 --gpu ${GPU} \
                 --max-seq-length ${MAX_SEQ_LENGTH} \
@@ -43,7 +42,6 @@ for src in "${SRC_DOMAINS[@]}"; do
                 --epochs ${EPOCHS} \
                 --bsz ${BSZ} \
                 --exp-dir ${EXP_DIR}
-            fi
-      done
+        done
     done
 done

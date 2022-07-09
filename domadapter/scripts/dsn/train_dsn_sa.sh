@@ -10,27 +10,25 @@ SEEDS=(1729 100 1000)
 HIDDEN_SIZE=768
 BSZ=32
 EPOCHS=10
+DATA_MODULE=sa
 MAX_SEQ_LENGTH=128
 PADDING=max_length
-NUM_CLASSES=3
+NUM_CLASSES=2
 DIFF_WEIGHT=0.3
 SIM_WEIGHT=0.1
 RECON_WEIGHT=0.1
 LRS=(1e-05)
 GPU=0
 PYTHON_FILE=${PROJECT_ROOT}/"domadapter/orchestration/train_dsn.py"
-SRC_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
-TRG_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
+SRC_DOMAINS=("apparel" "baby" "books" "camera_photo" "MR")
+TRG_DOMAINS=("apparel" "baby" "books" "camera_photo" "MR")
 
 for src in "${SRC_DOMAINS[@]}"; do
     for trg in "${TRG_DOMAINS[@]}"; do
          for LR in "${LRS[@]}";
          do
            for SEED in ${SEEDS[@]}; do
-             if [ ${src} = ${trg} ]; then
-                echo "SKIPPING ${src}-${trg}";
-                continue
-              elif [ ${src} = "fiction" ] && [ ${trg} = "slate" ]; then
+            if [ ${src} = ${trg} ]; then
                 echo "SKIPPING ${src}-${trg}";
                 continue
             else
@@ -42,6 +40,7 @@ for src in "${SRC_DOMAINS[@]}"; do
                   --train-proportion ${TRAIN_PROP} \
                   --dev-proportion ${DEV_PROP} \
                   --test-proportion ${TEST_PROP} \
+                  --data-module ${DATA_MODULE} \
                   --gpu ${GPU} \
                   --hidden-size ${HIDDEN_SIZE} \
                   --num-classes ${NUM_CLASSES} \

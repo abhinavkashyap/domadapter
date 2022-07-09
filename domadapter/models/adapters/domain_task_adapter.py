@@ -2,8 +2,7 @@ import torch
 import os
 import pytorch_lightning as pl
 from typing import Any, Optional, Dict, List, Union
-from transformers import AutoModelWithHeads
-from transformers import AutoConfig
+from transformers import AutoModelWithHeads, AdapterConfig, AutoConfig
 from domadapter.console import console
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
@@ -44,8 +43,10 @@ class DomainTaskAdapter(pl.LightningModule):
             with console.status(
                 f"Adding {self.hparams['source_target']} task adapter", spinner="monkey"
             ):
+                config = AdapterConfig.load("pfeiffer", reduction_factor=self.hparams['reduction_factor'])
                 # add task adapter to PLM
-                self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
+                self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}", config=config)
+
                 # add classification head to task adapter
                 self.model.add_classification_head(
                     f"task_adapter_{self.hparams['source_target']}",
@@ -61,8 +62,10 @@ class DomainTaskAdapter(pl.LightningModule):
             ):
                 # load domain adapter to PLM
                 self.model.load_adapter(hparams["domain_adapter_dir"])
+
+            config = AdapterConfig.load("pfeiffer", reduction_factor=self.hparams['reduction_factor'])
             # add task adapter to PLM
-            self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}")
+            self.model.add_adapter(f"task_adapter_{self.hparams['source_target']}", config=config)
             # add classification head to task adapter
             self.model.add_classification_head(
                 f"task_adapter_{self.hparams['source_target']}",

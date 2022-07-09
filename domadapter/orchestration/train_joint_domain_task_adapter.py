@@ -3,6 +3,7 @@ import pathlib
 import gc
 import os
 from domadapter.datamodules.mnli_dm import DataModuleSourceTarget
+from domadapter.datamodules.sa_dm import SADataModuleSourceTarget
 from domadapter.models.adapters.joint_domain_task_adapter import JointDomainTaskAdapter
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
@@ -27,6 +28,8 @@ import wandb
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
 @click.option("--bsz", type=int, help="batch size")
+@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
+@click.option("--reduction-factor", help="Factor by which the hidden size is reduced")
 @click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
@@ -37,7 +40,7 @@ import wandb
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
-@click.option("--gradient_clip_norm", type=float, help="Clips the graident if the norm is grater than this value",
+@click.option("--gradient_clip_norm", type=float, help="Clips the gradient if the norm is grater than this value",
               required=False, default=5.0)
 
 def train_domain_task_adapter(
@@ -45,6 +48,8 @@ def train_domain_task_adapter(
     dataset_cache_dir,
     pretrained_model_name,
     divergence,
+    data_module,
+    reduction_factor,
     train_proportion,
     dev_proportion,
     test_proportion,
@@ -76,6 +81,7 @@ def train_domain_task_adapter(
         "dev_proportion": dev_proportion,
         "test_proportion": test_proportion,
         "source_target": source_target,
+        "reduction_factor": int(reduction_factor),
         "num_classes": int(num_classes),
         "dataset_cache_dir": str(dataset_cache_dir),
         "exp_dir": str(exp_dir),
@@ -93,7 +99,13 @@ def train_domain_task_adapter(
     ###########################################################################
     # Setup the dataset
     ###########################################################################
-    dm = DataModuleSourceTarget(hyperparams)
+    if data_module == "mnli":
+        dm = DataModuleSourceTarget(hyperparams)
+        project_name = f"MNLI_{pretrained_model_name}"
+    elif data_module == "sa":
+        dm = SADataModuleSourceTarget(hyperparams)
+        project_name = f"SA_{pretrained_model_name}"
+
     dm.prepare_data()
 
     model = JointDomainTaskAdapter(hyperparams)
@@ -107,8 +119,8 @@ def train_domain_task_adapter(
     logger = WandbLogger(
     save_dir=exp_dir,
     id = run_id,
-    project=f"MNLI_{pretrained_model_name}",
-    job_type=f"Joint domain task adapter",
+    project=project_name,
+    job_type=f"Joint domain task adapter {reduction_factor}",
     group=source_target,
 )
 
@@ -122,7 +134,7 @@ def train_domain_task_adapter(
         monitor="source_val/loss",
     )
     early_stop_callback = EarlyStopping(
-        monitor="source_val/loss", patience=2, verbose=False, mode="min"
+        monitor="source_val/loss", patience=3, verbose=False, mode="min"
     )
 
     callbacks = [checkpoint_callback, early_stop_callback]

@@ -35,6 +35,17 @@ class JointDomainTaskAdapter(pl.LightningModule):
         # to get the layer wise pre-trained model outputs
         self.config.output_hidden_states = True
 
+        self.reduction_factor = self.hparams.get("reduction_factor")
+        if self.reduction_factor == "None":
+            self.reduction_factor = 16
+
+        self.leave_out = self.hparams.get("leave_out")
+        if self.leave_out != "None":
+            self.leave_out = self.leave_out.split(",")
+            self.leave_out = [int(i) for i in self.leave_out]
+        else:
+            self.leave_out = []
+
         # load the model weights
         with console.status(
             f"Loading {self.hparams['pretrained_model_name']} Model", spinner="monkey"
@@ -47,7 +58,12 @@ class JointDomainTaskAdapter(pl.LightningModule):
         with console.status(
             f"Adding {self.hparams['source_target']} adapter", spinner="monkey"
         ):
-            config = AdapterConfig.load("pfeiffer", reduction_factor=self.hparams['reduction_factor'])
+            # define the adapter config
+            console.print(f"🤗 adapter config using reduction_factor as {self.reduction_factor}")
+            console.print(f"🤗 adapter config skipping adapters on {self.leave_out} layers")
+
+            config = AdapterConfig.load("pfeiffer", reduction_factor=int(self.reduction_factor), leave_out=self.leave_out)
+
             # add task adapter to PLM
             self.model.add_adapter(f"adapter_{self.hparams['source_target']}", config=config)
             # add classification head to task adapter

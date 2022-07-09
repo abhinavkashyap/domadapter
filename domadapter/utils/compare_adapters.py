@@ -26,7 +26,7 @@ parser.add_argument('--dataset', type=str,
 args = parser.parse_args()
 
 '''
-python compare_adapter_outputs.py
+python compare_adapter.py
 --adapter "adapter" \
 --output "output_adapter.csv" \
 --dataset "/Users/bhavitvyamalik/Desktop/work/domadapter/data/mnli/fiction_government/test_target.csv"
