@@ -24,16 +24,34 @@ import wandb
     "--padding", type=str, help="Add padding while tokenizing upto max length"
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
-@click.option("--domain-adapter-id", type=str, help="wandb id of domain adapter (same domain adapter will be used)")
-@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
+@click.option(
+    "--domain-adapter-id",
+    type=str,
+    help="wandb id of domain adapter (same domain adapter will be used)",
+)
+@click.option(
+    "--data-module",
+    type=str,
+    help="data module on which trained model is to be trained (MNLI/SA)",
+)
 @click.option("--reduction-factor", help="Factor by which the hidden size is reduced")
-@click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
+@click.option(
+    "--num-classes",
+    type=int,
+    help="Number of classes for task adapter classification head",
+)
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
+@click.option(
+    "--divergence",
+    type=str,
+    help="divergence on which trained domain adapter is to be loaded",
+)
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
-@click.option("--mode", type=str, help="Train task adapter or train domain and task adapter")
+@click.option(
+    "--mode", type=str, help="Train task adapter or train domain and task adapter"
+)
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
@@ -67,7 +85,7 @@ def train_domain_adapter(
     exp_dir = pathlib.Path(exp_dir)
     domain_adapter_dir = exp_dir
 
-    if mode == 'task':
+    if mode == "task":
         exp_dir = exp_dir.joinpath(source_target, "task_adapter_only")
     else:
         exp_dir = exp_dir.joinpath(source_target, f"task_adapter_{divergence}")
@@ -75,7 +93,9 @@ def train_domain_adapter(
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
 
-    domain_adapter_dir = domain_adapter_dir.joinpath(source_target, "domain_adapter", str(domain_adapter_id), "checkpoints")
+    domain_adapter_dir = domain_adapter_dir.joinpath(
+        source_target, "domain_adapter", str(domain_adapter_id), "checkpoints"
+    )
 
     seed_everything(seed)
 
@@ -124,22 +144,22 @@ def train_domain_adapter(
     if mode != "task":
         print(domain_adapter_id)
 
-    if mode == 'task':
+    if mode == "task":
         logger = WandbLogger(
-        save_dir=exp_dir,
-        id = run_id,
-        project=project_name,
-        job_type=f"task adapter {reduction_factor} RF",
-        group=source_target,
-    )
+            save_dir=exp_dir,
+            id=run_id,
+            project=project_name,
+            job_type=f"task adapter {reduction_factor} RF",
+            group=source_target,
+        )
     else:
         logger = WandbLogger(
-        save_dir=exp_dir,
-        id = run_id,
-        project=project_name,
-        job_type=f"domain task adapter {reduction_factor} RF {str(divergence)} both",
-        group=source_target,
-    )
+            save_dir=exp_dir,
+            id=run_id,
+            project=project_name,
+            job_type=f"domain task adapter {reduction_factor} RF {str(divergence)} both",
+            group=source_target,
+        )
 
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     checkpoints_dir.mkdir(parents=True)
@@ -149,9 +169,6 @@ def train_domain_adapter(
         save_top_k=1,
         mode="min",
         monitor="source_val/loss",
-    )
-    early_stop_callback = EarlyStopping(
-        monitor="source_val/loss", patience=2, verbose=False, mode="min"
     )
 
     callbacks = [checkpoint_callback]

@@ -14,9 +14,13 @@ import wandb
 
 @click.command()
 @click.option("--dataset-cache-dir", type=str, help="Cache directory for dataset.")
-@click.option("--source-target", type=str, help="Source and target domain in source_target format")
+@click.option(
+    "--source-target", type=str, help="Source and target domain in source_target format"
+)
 @click.option("--pretrained-model-name", type=str, help="PLM to be used from HF")
-@click.option("--padding", type=str, help="Add padding while tokenizing upto max length")
+@click.option(
+    "--padding", type=str, help="Add padding while tokenizing upto max length"
+)
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option(
     "--num-classes",
@@ -24,11 +28,17 @@ import wandb
     help="Number of classes for task adapter classification head",
 )
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
+@click.option(
+    "--data-module",
+    type=str,
+    help="data module on which trained model is to be trained (MNLI/SA)",
+)
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
-@click.option("--hidden-size", type=str, help="Hidden size of Linear Layer for downsampling")
+@click.option(
+    "--hidden-size", type=str, help="Hidden size of Linear Layer for downsampling"
+)
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
@@ -40,11 +50,7 @@ import wandb
     type=float,
     help="Scaling factor for difference loss",
 )
-@click.option(
-    "--sim-weight",
-    type=float,
-    help="Scaling factor for similarity loss"
-)
+@click.option("--sim-weight", type=float, help="Scaling factor for similarity loss")
 @click.option(
     "--recon-weight",
     type=float,
@@ -80,7 +86,6 @@ def train_dsn(
     if not exp_dir.is_dir():
         exp_dir.mkdir(parents=True)
 
-
     seed_everything(seed)
 
     hyperparams = {
@@ -102,7 +107,7 @@ def train_dsn(
         "padding": str(padding),
         "diff_weight": float(diff_weight),
         "sim_weight": float(sim_weight),
-        "recon_weight": float(recon_weight)
+        "recon_weight": float(recon_weight),
     }
 
     ###########################################################################
@@ -127,7 +132,7 @@ def train_dsn(
 
     logger = WandbLogger(
         save_dir=exp_dir,
-        id = run_id,
+        id=run_id,
         project=project_name,
         job_type="DSN",
         group=source_target,
@@ -142,7 +147,6 @@ def train_dsn(
         mode="max",
         monitor="source_val/f1",
     )
-    early_stop_callback = EarlyStopping(monitor="val/src_f1", patience=2, verbose=False, mode="min")
 
     callbacks = [checkpoint_callback]
 

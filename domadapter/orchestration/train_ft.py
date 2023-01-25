@@ -31,15 +31,24 @@ import wandb
     type=int,
     help="Number of classes for PLM",
 )
-@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
+@click.option(
+    "--data-module",
+    type=str,
+    help="data module on which trained model is to be trained (MNLI/SA)",
+)
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
 @click.option("--seed", type=str, help="Seed for reproducibility")
 @click.option("--lr", type=float, help="Learning rate for the entire model")
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
-@click.option("--gradient_clip_norm", type=float, help="Clips the graident if the norm is grater than this value",
-              required=False, default=5.0)
+@click.option(
+    "--gradient_clip_norm",
+    type=float,
+    help="Clips the graident if the norm is grater than this value",
+    required=False,
+    default=5.0,
+)
 def train_ft(
     bsz,
     dataset_cache_dir,
@@ -58,7 +67,7 @@ def train_ft(
     lr,
     epochs,
     gpu,
-    gradient_clip_norm
+    gradient_clip_norm,
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
@@ -85,7 +94,7 @@ def train_ft(
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
         "padding": str(padding),
-        "gradient_clip_norm": gradient_clip_norm
+        "gradient_clip_norm": gradient_clip_norm,
     }
 
     ###########################################################################
@@ -110,7 +119,7 @@ def train_ft(
 
     logger = WandbLogger(
         save_dir=exp_dir,
-        id = run_id,
+        id=run_id,
         project=project_name,
         job_type=source_target.split("_")[0],
         group="fine-tune",
@@ -125,9 +134,6 @@ def train_ft(
         mode="min",
         monitor="val/loss",
     )
-    early_stop_callback = EarlyStopping(
-        monitor="val/loss", patience=2, verbose=False, mode="min"
-    )
 
     callbacks = [checkpoint_callback]
 
@@ -141,7 +147,7 @@ def train_ft(
         gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
-        gradient_clip_val=gradient_clip_norm
+        gradient_clip_val=gradient_clip_norm,
     )
 
     dm.setup("fit")
@@ -160,6 +166,7 @@ def train_ft(
 
     del model
     gc.collect()
+
 
 if __name__ == "__main__":
     train_ft()
