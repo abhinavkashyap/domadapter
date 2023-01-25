@@ -9,7 +9,7 @@ class TaskClassifierModule(nn.Module):
                 nn.Linear(in_features=768, out_features=hparams["hidden_size"])
                 for i in range(3)
             ]
-        )  # 768 had to be hardcoded here ;-;
+        )
         self.linear_hidden_same = nn.ModuleList(
             [
                 nn.Linear(

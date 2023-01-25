@@ -40,13 +40,17 @@ class DANNAdapter(pl.LightningModule):
             )
         console.print(f"[green] Loaded {self.hparams['pretrained_model_name']} model")
         with console.status(
-                f"Adding {self.hparams['source_target']} task adapter", spinner="monkey"
-            ):
-                # add task adapter to PLM
-                self.feature_extractor.add_adapter(f"DANN_adapter_{self.hparams['source_target']}")
-                # Freeze all parameters and train only task adapter
-                self.feature_extractor.train_adapter(f"DANN_adapter_{self.hparams['source_target']}")
-                console.print(f"[green] Added {self.hparams['source_target']} DANN adapter")
+            f"Adding {self.hparams['source_target']} task adapter", spinner="monkey"
+        ):
+            # add task adapter to PLM
+            self.feature_extractor.add_adapter(
+                f"DANN_adapter_{self.hparams['source_target']}"
+            )
+            # Freeze all parameters and train only task adapter
+            self.feature_extractor.train_adapter(
+                f"DANN_adapter_{self.hparams['source_target']}"
+            )
+            console.print(f"[green] Added {self.hparams['source_target']} DANN adapter")
 
         self.task_classifier = nn.Sequential(
             nn.Linear(
@@ -84,11 +88,21 @@ class DANNAdapter(pl.LightningModule):
         self.val_dom_clf_acc = torchmetrics.Accuracy()
         self.test_dom_clf_acc = torchmetrics.Accuracy()
 
-        self.train_f1 = torchmetrics.F1(num_classes=hparams["num_classes"], average="macro")  # F1
-        self.src_dev_f1 = torchmetrics.F1(num_classes=hparams["num_classes"], average="macro")
-        self.src_test_f1 = torchmetrics.F1(num_classes=hparams["num_classes"], average="macro")
-        self.trg_dev_f1 = torchmetrics.F1(num_classes=hparams["num_classes"], average="macro")
-        self.trg_test_f1 = torchmetrics.F1(num_classes=hparams["num_classes"], average="macro")
+        self.train_f1 = torchmetrics.F1(
+            num_classes=hparams["num_classes"], average="macro"
+        )  # F1
+        self.src_dev_f1 = torchmetrics.F1(
+            num_classes=hparams["num_classes"], average="macro"
+        )
+        self.src_test_f1 = torchmetrics.F1(
+            num_classes=hparams["num_classes"], average="macro"
+        )
+        self.trg_dev_f1 = torchmetrics.F1(
+            num_classes=hparams["num_classes"], average="macro"
+        )
+        self.trg_test_f1 = torchmetrics.F1(
+            num_classes=hparams["num_classes"], average="macro"
+        )
         self.val_dom_clf_f1 = torchmetrics.F1(num_classes=2, average="macro")
         self.test_dom_clf_f1 = torchmetrics.F1(num_classes=2, average="macro")
 
@@ -144,16 +158,26 @@ class DANNAdapter(pl.LightningModule):
         src_features, trg_features = torch.split(pooler_output, [bsz, bsz], dim=0)
 
         hidden_states = outputs.hidden_states[1 : len(outputs.hidden_states)]
-        hidden_states  = torch.stack(list(hidden_states), dim=0)  # shape of hidden_states = 12 (tuple)
-        hidden_states = torch.mean(hidden_states, dim=2)  # hidden_states shape = [12, 2*B, 768]
+        hidden_states = torch.stack(
+            list(hidden_states), dim=0
+        )  # shape of hidden_states = 12 (tuple)
+        hidden_states = torch.mean(
+            hidden_states, dim=2
+        )  # hidden_states shape = [12, 2*B, 768]
 
         # B * number_classes
         src_taskclf_logits = self.task_classifier(src_features)
         trg_taskclf_logits = self.task_classifier(trg_features)
 
-        src_features, trg_features = torch.split(hidden_states, [bsz, bsz], dim=1)  # src_features shape = [12, B, 768]
-        src_features = src_features.reshape(src_features.size(0)*src_features.size(1), src_features.size(2))    # src_features shape = [12*B, 768]
-        trg_features = trg_features.reshape(trg_features.size(0)*trg_features.size(1), trg_features.size(2))
+        src_features, trg_features = torch.split(
+            hidden_states, [bsz, bsz], dim=1
+        )  # src_features shape = [12, B, 768]
+        src_features = src_features.reshape(
+            src_features.size(0) * src_features.size(1), src_features.size(2)
+        )  # src_features shape = [12*B, 768]
+        trg_features = trg_features.reshape(
+            trg_features.size(0) * trg_features.size(1), trg_features.size(2)
+        )
 
         if self.switch_off_adv_train is False:
             src_grl_features = GradientReversal.apply(src_features, alpha)
@@ -165,8 +189,12 @@ class DANNAdapter(pl.LightningModule):
             src_domclf_logits = None
             trg_domclf_logits = None
 
-        return src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits
-
+        return (
+            src_taskclf_logits,
+            trg_taskclf_logits,
+            src_domclf_logits,
+            trg_domclf_logits,
+        )
 
     def configure_optimizers(self):
         # This was giving a warning:
@@ -177,28 +205,6 @@ class DANNAdapter(pl.LightningModule):
         learning_rate = self.learning_rate
         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         return optimizer
-        # lr_scheduler = ReduceLROnPlateau(
-        #     optimizer=optimizer,
-        #     mode="max",
-        #     factor=self.scheduler_factor,
-        #     patience=self.scheduler_patience,
-        #     threshold=self.scheduler_threshold,
-        #     threshold_mode="rel",
-        #     cooldown=self.scheduler_cooldown,
-        #     eps=self.scheduler_eps,
-        #     verbose=True,
-        # )
-        # return (
-        #     [optimizer],
-        #     [
-        #         {
-        #             "scheduler": lr_scheduler,
-        #             "reduce_lr_on_plateau": True,
-        #             "monitor": "source_val/f1",
-        #             "interval": "epoch",
-        #         }
-        #     ],
-        # )
 
     def training_step(self, batch, batch_idx):
         """training step of DANNAdapter"""
@@ -220,9 +226,16 @@ class DANNAdapter(pl.LightningModule):
             alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
         else:
             alpha = self.dann_alpha
-            assert alpha is not None, f"Set dynamic_dann_alpha to True or pass dann_alpha"
+            assert (
+                alpha is not None
+            ), f"Set dynamic_dann_alpha to True or pass dann_alpha"
 
-        src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits = self(
+        (
+            src_taskclf_logits,
+            trg_taskclf_logits,
+            src_domclf_logits,
+            trg_domclf_logits,
+        ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
             trg_inp_ids=trg_inp_ids,
@@ -234,8 +247,16 @@ class DANNAdapter(pl.LightningModule):
 
         # Domain loss
         if self.switch_off_adv_train is False:
-            domain_src_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
-            domain_trg_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
+            domain_src_labels = (
+                torch.zeros(src_domclf_logits.size(0))
+                .type(torch.LongTensor)
+                .to(self.device)
+            )
+            domain_trg_labels = (
+                torch.ones(trg_domclf_logits.size(0))
+                .type(torch.LongTensor)
+                .to(self.device)
+            )
 
             src_dom_loss = self.domain_clf_loss(src_domclf_logits, domain_src_labels)
             trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, domain_trg_labels)
@@ -286,9 +307,16 @@ class DANNAdapter(pl.LightningModule):
             alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
         else:
             alpha = self.dann_alpha
-            assert alpha is not None, f"Set dynamic_dann_alpha to True or pass dann_alpha"
+            assert (
+                alpha is not None
+            ), f"Set dynamic_dann_alpha to True or pass dann_alpha"
 
-        src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits = self(
+        (
+            src_taskclf_logits,
+            trg_taskclf_logits,
+            src_domclf_logits,
+            trg_domclf_logits,
+        ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
             trg_inp_ids=trg_inp_ids,
@@ -301,8 +329,16 @@ class DANNAdapter(pl.LightningModule):
 
         if self.switch_off_adv_train is False:
             # Domain loss
-            src_dom_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
-            trg_dom_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
+            src_dom_labels = (
+                torch.zeros(src_domclf_logits.size(0))
+                .type(torch.LongTensor)
+                .to(self.device)
+            )
+            trg_dom_labels = (
+                torch.ones(trg_domclf_logits.size(0))
+                .type(torch.LongTensor)
+                .to(self.device)
+            )
 
             src_dom_loss = self.domain_clf_loss(src_domclf_logits, src_dom_labels)
             trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, trg_dom_labels)
@@ -329,8 +365,12 @@ class DANNAdapter(pl.LightningModule):
                 preds=trg_domclf_logits, target=trg_dom_labels
             )
 
-            src_dom_clf_f1 = self.val_dom_clf_f1(preds=src_domclf_logits, target=src_dom_labels)
-            trg_dom_clf_f1 = self.val_dom_clf_f1(preds=trg_domclf_logits, target=trg_dom_labels)
+            src_dom_clf_f1 = self.val_dom_clf_f1(
+                preds=src_domclf_logits, target=src_dom_labels
+            )
+            trg_dom_clf_f1 = self.val_dom_clf_f1(
+                preds=trg_domclf_logits, target=trg_dom_labels
+            )
 
             dom_acc = (src_dom_clf_acc + trg_dom_clf_acc) / 2
             dom_f1 = (src_dom_clf_f1 + trg_dom_clf_f1) / 2
@@ -382,9 +422,16 @@ class DANNAdapter(pl.LightningModule):
             alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
         else:
             alpha = self.dann_alpha
-            assert alpha is not None, f"Set dynamic_dann_alpha to True or pass dann_alpha"
+            assert (
+                alpha is not None
+            ), f"Set dynamic_dann_alpha to True or pass dann_alpha"
 
-        src_taskclf_logits, trg_taskclf_logits, src_domclf_logits, trg_domclf_logits = self(
+        (
+            src_taskclf_logits,
+            trg_taskclf_logits,
+            src_domclf_logits,
+            trg_domclf_logits,
+        ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
             trg_inp_ids=trg_inp_ids,
@@ -397,8 +444,16 @@ class DANNAdapter(pl.LightningModule):
 
         if self.switch_off_adv_train is False:
             # Domain loss
-            src_dom_labels = torch.zeros(src_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
-            trg_dom_labels = torch.ones(trg_domclf_logits.size(0)).type(torch.LongTensor).to(self.device)
+            src_dom_labels = (
+                torch.zeros(src_domclf_logits.size(0))
+                .type(torch.LongTensor)
+                .to(self.device)
+            )
+            trg_dom_labels = (
+                torch.ones(trg_domclf_logits.size(0))
+                .type(torch.LongTensor)
+                .to(self.device)
+            )
 
             src_dom_loss = self.domain_clf_loss(src_domclf_logits, src_dom_labels)
             trg_dom_loss = self.domain_clf_loss(trg_domclf_logits, trg_dom_labels)
@@ -425,8 +480,12 @@ class DANNAdapter(pl.LightningModule):
                 preds=trg_domclf_logits, target=trg_dom_labels
             )
 
-            src_dom_clf_f1 = self.test_dom_clf_f1(preds=src_domclf_logits, target=src_dom_labels)
-            trg_dom_clf_f1 = self.test_dom_clf_f1(preds=trg_domclf_logits, target=trg_dom_labels)
+            src_dom_clf_f1 = self.test_dom_clf_f1(
+                preds=src_domclf_logits, target=src_dom_labels
+            )
+            trg_dom_clf_f1 = self.test_dom_clf_f1(
+                preds=trg_domclf_logits, target=trg_dom_labels
+            )
             dom_acc = (src_dom_clf_acc + trg_dom_clf_acc) / 2
             dom_f1 = (src_dom_clf_f1 + trg_dom_clf_f1) / 2
         else:

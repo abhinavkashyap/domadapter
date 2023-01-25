@@ -42,13 +42,12 @@ class DSN(pl.LightningModule):
             f"[green] Loaded {self.hparams['pretrained_model_name']} base model"
         )
 
-
         self.task_classifier = LinearClassifier(
             num_hidden_layers=2,
             input_size=hparams["hidden_size"],
             hidden_size=hparams["hidden_size"],
             output_size=hparams["num_classes"],
-            return_hiddens=True
+            return_hiddens=True,
         )
 
         self.shared_encoder = nn.Sequential(
@@ -81,7 +80,6 @@ class DSN(pl.LightningModule):
                 out_features=self.config.hidden_size,
             )
         )
-
 
         self.task_clf_loss = CrossEntropyLoss()
         self.similarity_loss = CMD()
@@ -153,8 +151,12 @@ class DSN(pl.LightningModule):
 
         bsz = src_inp_ids.size(0)
 
-        src_features = self.feature_extractor(input_ids=src_inp_ids, attention_mask=src_attn_mask)
-        trg_features = self.feature_extractor(input_ids=trg_inp_ids, attention_mask=trg_attn_mask)
+        src_features = self.feature_extractor(
+            input_ids=src_inp_ids, attention_mask=src_attn_mask
+        )
+        trg_features = self.feature_extractor(
+            input_ids=trg_inp_ids, attention_mask=trg_attn_mask
+        )
         src_features = src_features.pooler_output
         trg_features = trg_features.pooler_output
 
@@ -186,35 +188,13 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output
+            trg_decoder_output,
         )
 
     def configure_optimizers(self):
         learning_rate = self.learning_rate
         optimizer = optim.AdamW(self.parameters(), lr=learning_rate)
         return optimizer
-        # lr_scheduler = ReduceLROnPlateau(
-        #     optimizer=optimizer,
-        #     mode="max",
-        #     factor=self.scheduler_factor,
-        #     patience=self.scheduler_patience,
-        #     threshold=self.scheduler_threshold,
-        #     threshold_mode="rel",
-        #     cooldown=self.scheduler_cooldown,
-        #     eps=self.scheduler_eps,
-        #     verbose=True,
-        # )
-        # return (
-        #     [optimizer],
-        #     [
-        #         {
-        #             "scheduler": lr_scheduler,
-        #             "reduce_lr_on_plateau": True,
-        #             "monitor": "source_val/f1",
-        #             "interval": "epoch",
-        #         }
-        #     ],
-        # )
 
     def training_step(self, batch, batch_idx):
         """training step of DSN"""
@@ -238,7 +218,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output
+            trg_decoder_output,
         ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
@@ -279,7 +259,7 @@ class DSN(pl.LightningModule):
             "train/loss": loss,
             "train/diff_loss": self.diff_weight * final_diff_loss,
             "train/sim_loss": self.sim_weight * similarity_loss,
-            "train/recon_loss": self.recon_weight * final_recon_loss
+            "train/recon_loss": self.recon_weight * final_recon_loss,
         }
 
         for key, val in metrics.items():
@@ -312,7 +292,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output
+            trg_decoder_output,
         ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
@@ -328,9 +308,7 @@ class DSN(pl.LightningModule):
         trg_accuracy = self.trg_dev_acc(preds=trg_taskclf_logits, target=trg_labels)
         trg_f1 = self.trg_dev_f1(preds=trg_taskclf_logits, target=trg_labels)
 
-        loss = (
-            src_class_loss
-        )
+        loss = src_class_loss
 
         metrics = {
             "source_val/taskclf_loss": src_class_loss,
@@ -339,7 +317,7 @@ class DSN(pl.LightningModule):
             "val/loss": loss,
             "target_val/taskclf_loss": trg_class_loss,
             "target_val/accuracy": trg_accuracy,
-            "target_val/f1": trg_f1
+            "target_val/f1": trg_f1,
         }
 
         for key, val in metrics.items():
@@ -372,7 +350,7 @@ class DSN(pl.LightningModule):
             src_taskclf_logits,
             trg_taskclf_logits,
             src_decoder_output,
-            trg_decoder_output
+            trg_decoder_output,
         ) = self(
             src_inp_ids=src_inp_ids,
             src_attn_mask=src_attn_mask,
@@ -396,13 +374,11 @@ class DSN(pl.LightningModule):
             source_sample=hcs, target_sample=hct
         )
 
-
         src_accuracy = self.src_test_acc(preds=src_taskclf_logits, target=src_labels)
         src_f1 = self.src_test_f1(preds=src_taskclf_logits, target=src_labels)
 
         trg_accuracy = self.trg_test_acc(preds=trg_taskclf_logits, target=trg_labels)
         trg_f1 = self.trg_test_f1(preds=trg_taskclf_logits, target=trg_labels)
-
 
         loss = (
             class_loss
@@ -416,7 +392,7 @@ class DSN(pl.LightningModule):
             "source_test/accuracy": src_accuracy,
             "source_test/f1": src_f1,
             "target_test/accuracy": trg_accuracy,
-            "target_test/f1": trg_f1
+            "target_test/f1": trg_f1,
         }
 
         for key, val in metrics.items():
