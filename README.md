@@ -27,7 +27,7 @@ Change the following variables in the .envrc file.
 
 
 ## Installation
----
+
 ### Creating a virtualenv
 
 - Run `poetry install` to install the dependencies
@@ -52,8 +52,6 @@ For example to train the ***Joint-DT-:electric_plug:*** on the MNLI dataset run
 `bash train_joint_da_ta_mnli.sh`
 
 
-
----
 ## Relevant folders
 ```
 .
