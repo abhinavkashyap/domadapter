@@ -1,6 +1,6 @@
 # UDAPTER - Efficient Domain Adaptation Using Adapters
 
-`Domadapter` trains adapters for Domain Adaptation in NLP. The idea is to use principles 
+Code for our paper at `EACL'23: UDAPTER-Efficient Domain Adaptation Using Adapters`. `Domadapter` trains adapters for Domain Adaptation in NLP. The idea is to use principles 
 of unsupervised domain adaptation and parameter efficient fine-tuning to make domain 
 adaptation more efficient. 
 
