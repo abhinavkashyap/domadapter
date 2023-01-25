@@ -26,12 +26,24 @@ import wandb
     "--padding", type=str, help="Add padding while tokenizing upto max length"
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
-@click.option("--num-classes", type=int, help="Number of classes for task adapter classification head")
+@click.option(
+    "--num-classes",
+    type=int,
+    help="Number of classes for task adapter classification head",
+)
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
+@click.option(
+    "--data-module",
+    type=str,
+    help="data module on which trained model is to be trained (MNLI/SA)",
+)
 @click.option("--reduction-factor", help="Factor by which the hidden size is reduced")
 @click.option("--skip-layers", help="Layers to be skipped while adding adapters")
-@click.option("--divergence", type=str, help="divergence on which trained domain adapter is to be loaded")
+@click.option(
+    "--divergence",
+    type=str,
+    help="divergence on which trained domain adapter is to be loaded",
+)
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--test-proportion", type=float, help="Test on small proportion")
@@ -41,9 +53,13 @@ import wandb
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
-@click.option("--gradient_clip_norm", type=float, help="Clips the gradient if the norm is grater than this value",
-              required=False, default=5.0)
-
+@click.option(
+    "--gradient_clip_norm",
+    type=float,
+    help="Clips the gradient if the norm is grater than this value",
+    required=False,
+    default=5.0,
+)
 def train_domain_task_adapter(
     bsz,
     dataset_cache_dir,
@@ -125,12 +141,12 @@ def train_domain_task_adapter(
         job_type = f"Joint domain task adapter {skip_layers} SL"
 
     logger = WandbLogger(
-    save_dir=exp_dir,
-    id = run_id,
-    project=project_name,
-    job_type=job_type,
-    group=source_target,
-)
+        save_dir=exp_dir,
+        id=run_id,
+        project=project_name,
+        job_type=job_type,
+        group=source_target,
+    )
 
     checkpoints_dir = exp_dir.joinpath("checkpoints")
     checkpoints_dir.mkdir(parents=True)
@@ -141,11 +157,8 @@ def train_domain_task_adapter(
         mode="min",
         monitor="source_val/loss",
     )
-    early_stop_callback = EarlyStopping(
-        monitor="source_val/loss", patience=3, verbose=False, mode="min"
-    )
 
-    callbacks = [checkpoint_callback, early_stop_callback]
+    callbacks = [checkpoint_callback]
 
     trainer = Trainer(
         limit_train_batches=train_proportion,

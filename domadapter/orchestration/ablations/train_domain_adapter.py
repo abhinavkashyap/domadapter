@@ -27,8 +27,14 @@ import wandb
 )
 @click.option("--max-seq-length", type=str, help="seq length for tokenizer")
 @click.option("--bsz", type=int, help="batch size")
-@click.option("--data-module", type=str, help="data module on which trained model is to be trained (MNLI/SA)")
-@click.option("--divergence", type=str, help="divergence on which domain adapter is to be trained")
+@click.option(
+    "--data-module",
+    type=str,
+    help="data module on which trained model is to be trained (MNLI/SA)",
+)
+@click.option(
+    "--divergence", type=str, help="divergence on which domain adapter is to be trained"
+)
 @click.option("--train-proportion", type=float, help="Train on small proportion")
 @click.option("--dev-proportion", type=float, help="Validate on small proportion")
 @click.option("--exp-dir", type=str, help="Experiment directory to store artefacts")
@@ -39,8 +45,13 @@ import wandb
 @click.option("--epochs", type=int, help="Number of epochs to run the training")
 @click.option("--gpu", type=int, default=None, help="GPU to run the program on")
 @click.option("--log-freq", type=int, help="Log wandb after how many steps")
-@click.option("--gradient_clip_norm", type=float, help="Clips the graident if the norm is grater than this value",
-              required=False, default=5.0)
+@click.option(
+    "--gradient_clip_norm",
+    type=float,
+    help="Clips the graident if the norm is grater than this value",
+    required=False,
+    default=5.0,
+)
 def train_domain_adapter(
     bsz,
     dataset_cache_dir,
@@ -60,7 +71,7 @@ def train_domain_adapter(
     lr,
     epochs,
     gpu,
-    gradient_clip_norm
+    gradient_clip_norm,
 ):
     dataset_cache_dir = pathlib.Path(dataset_cache_dir)
     exp_dir = pathlib.Path(exp_dir)
@@ -88,7 +99,7 @@ def train_domain_adapter(
         "pretrained_model_name": str(pretrained_model_name),
         "max_seq_length": int(max_seq_length),
         "padding": str(padding),
-        "gradient_clip_norm": gradient_clip_norm
+        "gradient_clip_norm": gradient_clip_norm,
     }
 
     ###########################################################################
@@ -116,12 +127,11 @@ def train_domain_adapter(
     elif reduction_factor != "None":
         job_type = f"domain adapter {reduction_factor} RF"
 
-
     print(job_type)
 
     logger = WandbLogger(
         save_dir=exp_dir,
-        id = run_id,
+        id=run_id,
         project=project_name,
         job_type=job_type,
         group=source_target,
@@ -136,9 +146,6 @@ def train_domain_adapter(
         mode="min",
         monitor="val/divergence",
     )
-    early_stop_callback = EarlyStopping(
-        monitor="val/divergence", patience=2, verbose=False, mode="min"
-    )
 
     callbacks = [checkpoint_callback]
 
@@ -151,7 +158,7 @@ def train_domain_adapter(
         gpus=str(gpu),
         max_epochs=epochs,
         logger=logger,
-        gradient_clip_val=gradient_clip_norm
+        gradient_clip_val=gradient_clip_norm,
     )
 
     dm.setup("fit")
@@ -174,6 +181,7 @@ def train_domain_adapter(
 
     del model
     gc.collect()
+
 
 if __name__ == "__main__":
     train_domain_adapter()
