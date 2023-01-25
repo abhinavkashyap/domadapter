@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
-# Keep HIDDEN_SIZE 128 instead of 100
+# Train DSN Adapter for SA
 
 TRAIN_PROP=1.0
 DEV_PROP=1.0
@@ -25,37 +24,36 @@ TRG_DOMAINS=("apparel" "baby" "books" "camera_photo" "MR")
 
 for src in "${SRC_DOMAINS[@]}"; do
     for trg in "${TRG_DOMAINS[@]}"; do
-         for LR in "${LRS[@]}";
-         do
-           for SEED in ${SEEDS[@]}; do
-            if [ ${src} = ${trg} ]; then
-                echo "SKIPPING ${src}-${trg}";
-                continue
-            else
-              python "${PYTHON_FILE}" \
-                  --dataset-cache-dir "${DATASET_CACHE_DIR}" \
-                  --source-target  "${src}_${trg}" \
-                  --pretrained-model-name "bert-base-uncased" \
-                  --seed ${SEED} \
-                  --train-proportion ${TRAIN_PROP} \
-                  --dev-proportion ${DEV_PROP} \
-                  --test-proportion ${TEST_PROP} \
-                  --data-module ${DATA_MODULE} \
-                  --gpu ${GPU} \
-                  --hidden-size ${HIDDEN_SIZE} \
-                  --num-classes ${NUM_CLASSES} \
-                  --max-seq-length ${MAX_SEQ_LENGTH} \
-                  --padding ${PADDING} \
-                  --lr "${LR}" \
-                  --log-freq 5 \
-                  --epochs ${EPOCHS} \
-                  --bsz ${BSZ} \
-                  --diff-weight ${DIFF_WEIGHT} \
-                  --sim-weight ${SIM_WEIGHT} \
-                  --recon-weight ${RECON_WEIGHT} \
-                  --exp-dir "${EXP_DIR}"
-              fi
-              done
-         done
+        for LR in "${LRS[@]}"; do
+            for SEED in ${SEEDS[@]}; do
+                if [ ${src} = ${trg} ]; then
+                    echo "SKIPPING ${src}-${trg}"
+                    continue
+                else
+                    python "${PYTHON_FILE}" \
+                        --dataset-cache-dir "${DATASET_CACHE_DIR}" \
+                        --source-target "${src}_${trg}" \
+                        --pretrained-model-name "bert-base-uncased" \
+                        --seed ${SEED} \
+                        --train-proportion ${TRAIN_PROP} \
+                        --dev-proportion ${DEV_PROP} \
+                        --test-proportion ${TEST_PROP} \
+                        --data-module ${DATA_MODULE} \
+                        --gpu ${GPU} \
+                        --hidden-size ${HIDDEN_SIZE} \
+                        --num-classes ${NUM_CLASSES} \
+                        --max-seq-length ${MAX_SEQ_LENGTH} \
+                        --padding ${PADDING} \
+                        --lr "${LR}" \
+                        --log-freq 5 \
+                        --epochs ${EPOCHS} \
+                        --bsz ${BSZ} \
+                        --diff-weight ${DIFF_WEIGHT} \
+                        --sim-weight ${SIM_WEIGHT} \
+                        --recon-weight ${RECON_WEIGHT} \
+                        --exp-dir "${EXP_DIR}"
+                fi
+            done
+        done
     done
 done

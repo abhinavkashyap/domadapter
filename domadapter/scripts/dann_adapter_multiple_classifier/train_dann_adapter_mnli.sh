@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
+# Train DANN-Adapter-MC for MNLI
 
 TRAIN_PROP=1.0
 DEV_PROP=1.0
@@ -21,42 +21,41 @@ SRC_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
 TRG_DOMAINS=("fiction" "travel" "slate" "government" "telephone")
 
 for src in "${SRC_DOMAINS[@]}"; do
-    for trg in "${TRG_DOMAINS[@]}"; do
-         for LR in "${LRS[@]}"; do
-           for DANNALPHA in "${DANNALPHAS[@]}";
-           do
-             for SEED in ${SEEDS[@]}; do
-              if [ ${src} = ${trg} ]; then
-                echo "SKIPPING ${src}-${trg}";
-                continue
-              elif [ ${src} = "fiction" ] && [ ${trg} = "slate" ]; then
-                echo "SKIPPING ${src}-${trg}";
-                continue
-              else
-                python "${PYTHON_FILE}" \
-                    --dataset-cache-dir "${DATASET_CACHE_DIR}" \
-                    --source-target  "${src}_${trg}" \
-                    --pretrained-model-name "bert-base-uncased" \
-                    --seed ${SEED} \
-                    --train-proportion ${TRAIN_PROP} \
-                    --dev-proportion ${DEV_PROP} \
-                    --test-proportion ${TEST_PROP} \
-                    --gpu ${GPU} \
-                    --data-module ${DATA_MODULE} \
-                    --hidden-size ${HIDDEN_SIZE} \
-                    --num-classes ${NUM_CLASSES} \
-                    --max-seq-length ${MAX_SEQ_LENGTH} \
-                    --padding ${PADDING} \
-                    --lr "${LR}" \
-                    --log-freq 5 \
-                    --epochs ${EPOCHS} \
-                    --bsz ${BSZ} \
-                    --exp-dir "${EXP_DIR}" \
-                    --dann_alpha "${DANNALPHA}" \
-                    --exp-name "EXP_LR${LR}_constalpha${DANNALPHA}"
-                fi
-              done
-           done
+  for trg in "${TRG_DOMAINS[@]}"; do
+    for LR in "${LRS[@]}"; do
+      for DANNALPHA in "${DANNALPHAS[@]}"; do
+        for SEED in ${SEEDS[@]}; do
+          if [ ${src} = ${trg} ]; then
+            echo "SKIPPING ${src}-${trg}"
+            continue
+          elif [ ${src} = "fiction" ] && [ ${trg} = "slate" ]; then
+            echo "SKIPPING ${src}-${trg}"
+            continue
+          else
+            python "${PYTHON_FILE}" \
+              --dataset-cache-dir "${DATASET_CACHE_DIR}" \
+              --source-target "${src}_${trg}" \
+              --pretrained-model-name "bert-base-uncased" \
+              --seed ${SEED} \
+              --train-proportion ${TRAIN_PROP} \
+              --dev-proportion ${DEV_PROP} \
+              --test-proportion ${TEST_PROP} \
+              --gpu ${GPU} \
+              --data-module ${DATA_MODULE} \
+              --hidden-size ${HIDDEN_SIZE} \
+              --num-classes ${NUM_CLASSES} \
+              --max-seq-length ${MAX_SEQ_LENGTH} \
+              --padding ${PADDING} \
+              --lr "${LR}" \
+              --log-freq 5 \
+              --epochs ${EPOCHS} \
+              --bsz ${BSZ} \
+              --exp-dir "${EXP_DIR}" \
+              --dann_alpha "${DANNALPHA}" \
+              --exp-name "EXP_LR${LR}_constalpha${DANNALPHA}"
+          fi
         done
+      done
     done
+  done
 done

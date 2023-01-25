@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 # losses to choose from coral, cmd, mkmmd
+# ABLATION: Reduction Factor Ablation
 
 TRAIN_PROP=1.0
 DEV_PROP=1.0
@@ -12,10 +13,8 @@ MODE=domain
 BSZ=32
 DATA_MODULE=sa
 EPOCHS=10
-# REDUCTION_FACTOR=32
 REDUCTION_FACTOR=(2 4 8 16 32 64 128)
 SKIP_LAYERS="None"
-# SKIP_LAYERS=(0 0,1 0,1,2 0,1,2,3 0,1,2,3,4 0,1,2,3,4,5 0,1,2,3,4,5,6 0,1,2,3,4,5,6,7 0,1,2,3,4,5,6,7,8 0,1,2,3,4,5,6,7,8,9)
 MAX_SEQ_LENGTH=128
 PADDING=max_length
 NUM_CLASSES=2
@@ -32,7 +31,7 @@ for domain in "${DOMAINS[@]}"; do
             echo ${COUNTER}
             python ${PYTHON_FILE} \
                 --dataset-cache-dir ${DATASET_CACHE_DIR} \
-                --source-target  "${domain}" \
+                --source-target "${domain}" \
                 --pretrained-model-name "bert-base-uncased" \
                 --seed ${seed} \
                 --divergence ${DIVERGENCE} \
@@ -53,7 +52,7 @@ for domain in "${DOMAINS[@]}"; do
                 --epochs ${EPOCHS} \
                 --bsz ${BSZ} \
                 --exp-dir ${EXP_DIR}
-            COUNTER=$[$COUNTER +1]
+            COUNTER=$(($COUNTER + 1))
         done
     done
 done

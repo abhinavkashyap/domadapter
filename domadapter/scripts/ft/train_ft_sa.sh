@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
+# Finetuning on the source domain for the sentiment analysis dataset
 
 TRAIN_PROP=1.0
 DEV_PROP=1.0
@@ -23,7 +23,7 @@ for src in "${DOMAINS[@]}"; do
     for SEED in ${SEEDS[@]}; do
         python ${PYTHON_FILE} \
             --dataset-cache-dir ${DATASET_CACHE_DIR} \
-            --source-target  ${src} \
+            --source-target ${src} \
             --pretrained-model-name "bert-base-uncased" \
             --seed ${SEED} \
             --data-module ${DATA_MODULE} \

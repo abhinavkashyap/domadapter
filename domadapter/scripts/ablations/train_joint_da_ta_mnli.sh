@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Train domain (frozen), task adapter for 5 domains "fiction" "travel" "slate" "government" "telephone"
 # losses to choose from coral, cmd, mkmmd
-
+# Ablation: Skip Layer Ablations
 TRAIN_PROP=1.0
 DEV_PROP=1.0
 TEST_PROP=1.0
@@ -12,7 +12,6 @@ BSZ=32
 DATA_MODULE=mnli
 EPOCHS=20
 MAX_SEQ_LENGTH=128
-# SKIP_LAYERS="None"
 SKIP_LAYERS=(0 0,1 0,1,2 0,1,2,3 0,1,2,3,4 0,1,2,3,4,5 0,1,2,3,4,5,6 0,1,2,3,4,5,6,7 0,1,2,3,4,5,6,7,8 0,1,2,3,4,5,6,7,8,9)
 PADDING=max_length
 NUM_CLASSES=3
@@ -27,7 +26,7 @@ for domain in "${DOMAINS[@]}"; do
         for seed in "${SEED[@]}"; do
             python ${PYTHON_FILE} \
                 --dataset-cache-dir ${DATASET_CACHE_DIR} \
-                --source-target  "${domain}" \
+                --source-target "${domain}" \
                 --pretrained-model-name "bert-base-uncased" \
                 --seed "${seed}" \
                 --divergence ${DIVERGENCE} \
