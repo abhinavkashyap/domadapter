@@ -10,7 +10,11 @@ from st_aggrid.shared import JsCode
 from st_aggrid import GridUpdateMode, DataReturnMode
 
 ###################################
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
+from sklearn.metrics import (
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    classification_report,
+)
 
 
 st.set_page_config(page_title="Domadapter")
@@ -22,13 +26,24 @@ c28, c30, c31 = st.columns([1, 6, 1])
 global shows
 
 with c30:
-    uploaded_files = st.file_uploader("Upload CSVs", type="csv", accept_multiple_files=True, key="1")
+    uploaded_files = st.file_uploader(
+        "Upload CSVs", type="csv", accept_multiple_files=True, key="1"
+    )
     if uploaded_files:
         for file in uploaded_files:
             file.seek(0)
         names = [i.name.split(".")[0] for i in uploaded_files]
         uploaded_data_read = [pd.read_csv(file) for file in uploaded_files]
-        shows = pd.concat([uploaded_data_read[0]["sentence"], uploaded_data_read[1]["label"], uploaded_data_read[0]["prediction"], uploaded_data_read[1]["prediction"]], axis=1, keys=["sentence", "gold_label", f"label {names[0]}", f"label {names[1]}"])
+        shows = pd.concat(
+            [
+                uploaded_data_read[0]["sentence"],
+                uploaded_data_read[1]["label"],
+                uploaded_data_read[0]["prediction"],
+                uploaded_data_read[1]["prediction"],
+            ],
+            axis=1,
+            keys=["sentence", "gold_label", f"label {names[0]}", f"label {names[1]}"],
+        )
 
         shows[f"{names[0]} filter"] = 0
         shows[f"{names[0]} filter"] = shows[f"label {names[0]}"] == shows["gold_label"]
@@ -75,22 +90,31 @@ st.text("")
 st.table(df)
 
 # calculate confusion matrix and classification report for label and prediction (domain task adapter model)
-confusion_matrix_domain = confusion_matrix(shows["gold_label"], shows[f"label {names[0]}"], labels=["entailment", "neutral", "contradiction"])
-classification_report_domain = classification_report(shows["gold_label"], shows[f"label {names[0]}"], labels=["entailment", "neutral", "contradiction"])  # sort of like meso analysis
+confusion_matrix_domain = confusion_matrix(
+    shows["gold_label"],
+    shows[f"label {names[0]}"],
+    labels=["entailment", "neutral", "contradiction"],
+)
+classification_report_domain = classification_report(
+    shows["gold_label"],
+    shows[f"label {names[0]}"],
+    labels=["entailment", "neutral", "contradiction"],
+)  # sort of like meso analysis
 
-# TODO not working
-# disp = ConfusionMatrixDisplay(confusion_matrix=confusion_matrix_domain, display_labels=["entailment", "neutral", "contradiction"])
-# print(type(disp))
-# st.pyplot(disp)
-
-# st.text(f'{names[0]} Model Confusion Matrix: \n\n ')
-# st.text(confusion_matrix_domain)
-st.subheader(f'{names[0]} Model Report \n\n ')
+st.subheader(f"{names[0]} Model Report \n\n ")
 st.text(classification_report_domain)
 
 # calculate confusion matrix and classification report for label and prediction (task adapter model)
-confusion_matrix_task = confusion_matrix(shows["gold_label"], shows[f"label {names[1]}"], labels=["entailment", "neutral", "contradiction"])
-classification_report_task = classification_report(shows["gold_label"], shows[f"label {names[1]}"], labels=["entailment", "neutral", "contradiction"])
+confusion_matrix_task = confusion_matrix(
+    shows["gold_label"],
+    shows[f"label {names[1]}"],
+    labels=["entailment", "neutral", "contradiction"],
+)
+classification_report_task = classification_report(
+    shows["gold_label"],
+    shows[f"label {names[1]}"],
+    labels=["entailment", "neutral", "contradiction"],
+)
 
-st.subheader(f'{names[1]} Model Report \n\n ')
+st.subheader(f"{names[1]} Model Report \n\n ")
 st.text(classification_report_task)

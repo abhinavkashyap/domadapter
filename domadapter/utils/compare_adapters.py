@@ -15,28 +15,25 @@ from datasets import load_dataset
 MAX_SEQ_LENGTH = 128
 BATCH_SIZE = 8
 
-parser = argparse.ArgumentParser(description='Arguments for adapter outputs')
-parser.add_argument('--adapter', type=str,
-                    help='directory containing checkpoint of adapter')
-parser.add_argument('--output', type=str,
-                    help='name of output CSV file')
-parser.add_argument('--dataset', type=str,
-                    help='CSV file whose data points are to be predicted')
+parser = argparse.ArgumentParser(description="Arguments for adapter outputs")
+parser.add_argument(
+    "--adapter", type=str, help="directory containing checkpoint of adapter"
+)
+parser.add_argument("--output", type=str, help="name of output CSV file")
+parser.add_argument(
+    "--dataset", type=str, help="CSV file whose data points are to be predicted"
+)
 
 args = parser.parse_args()
 
-'''
+"""
 python compare_adapter.py
 --adapter "adapter" \
 --output "output_adapter.csv" \
---dataset "/Users/bhavitvyamalik/Desktop/work/domadapter/data/mnli/fiction_government/test_target.csv"
-'''
+--dataset ""
+"""
 
-id_str = {
-    0: "entailment",
-    1: "neutral",
-    2: "contradiction"
-}
+id_str = {0: "entailment", 1: "neutral", 2: "contradiction"}
 
 softmax = nn.Softmax(dim=1)
 
@@ -60,6 +57,7 @@ model.to(device)
 # load csv dataset
 dataset = load_dataset("csv", data_files=[args.dataset])["train"]
 
+
 def return_output(dataset, model):
     batch_text = []
     batch_labels = []
@@ -69,38 +67,51 @@ def return_output(dataset, model):
     global_sentences = []
 
     for i in tqdm(range(len(dataset))):
-        # if(i<=6):
-            if i % BATCH_SIZE == 0 and i!=0:  #batch size can be increased depending on your RAM
-                batch_text.append((dataset["premise"][i], dataset["hypothesis"][i]))
-                batch_labels.append(dataset["label"][i])
+        if (
+            i % BATCH_SIZE == 0 and i != 0
+        ):  # batch size can be increased depending on your RAM
+            batch_text.append((dataset["premise"][i], dataset["hypothesis"][i]))
+            batch_labels.append(dataset["label"][i])
 
-                encoding = tokenizer(batch_text, return_tensors='pt', padding='max_length', truncation=True, max_length=MAX_SEQ_LENGTH)
-                input_ids = encoding['input_ids'].to(device)
-                attention_mask = encoding['attention_mask'].to(device)
+            encoding = tokenizer(
+                batch_text,
+                return_tensors="pt",
+                padding="max_length",
+                truncation=True,
+                max_length=MAX_SEQ_LENGTH,
+            )
+            input_ids = encoding["input_ids"].to(device)
+            attention_mask = encoding["attention_mask"].to(device)
 
-                outputs = model(input_ids, attention_mask).logits
-                # get the softmax and argmax of the logits for outputs
-                outputs_labels = softmax(outputs).argmax(dim=1).detach().cpu().numpy()
+            outputs = model(input_ids, attention_mask).logits
+            # get the softmax and argmax of the logits for outputs
+            outputs_labels = softmax(outputs).argmax(dim=1).detach().cpu().numpy()
 
-                # convert batch_labels to numpy array
-                batch_labels = np.array(batch_labels)
+            # convert batch_labels to numpy array
+            batch_labels = np.array(batch_labels)
 
-                global_labels += batch_labels.tolist()
-                global_predictions += outputs_labels.tolist()
-                global_sentences += batch_text
+            global_labels += batch_labels.tolist()
+            global_predictions += outputs_labels.tolist()
+            global_sentences += batch_text
 
-                batch_text = []
-                batch_labels = []
-                gc.collect()
+            batch_text = []
+            batch_labels = []
+            gc.collect()
 
-            else:
-                batch_text.append((dataset["premise"][i], dataset["hypothesis"][i]))
-                batch_labels.append(dataset["label"][i])
+        else:
+            batch_text.append((dataset["premise"][i], dataset["hypothesis"][i]))
+            batch_labels.append(dataset["label"][i])
 
     if len(batch_labels) > 0:
-        encoding = tokenizer(batch_text, return_tensors='pt', padding='max_length', truncation=True, max_length=MAX_SEQ_LENGTH)
-        input_ids = encoding['input_ids'].to(device)
-        attention_mask = encoding['attention_mask'].to(device)
+        encoding = tokenizer(
+            batch_text,
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+            max_length=MAX_SEQ_LENGTH,
+        )
+        input_ids = encoding["input_ids"].to(device)
+        attention_mask = encoding["attention_mask"].to(device)
 
         outputs = model(input_ids, attention_mask).logits
         # get the softmax and argmax of the logits for outputs
