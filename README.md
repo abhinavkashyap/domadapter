@@ -47,7 +47,7 @@ Change the following variables in the .envrc file.
 ### Train Models 
 
 See the `scripts` folder to train models. 
-For example to train the `Joint-DT-:electric_plug:` oin the MNLI dataset run 
+For example to train the ***Joint-DT-:electric_plug:*** on the MNLI dataset run 
 
 `bash train_joint_da_ta_mnli.sh`
 
