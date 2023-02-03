@@ -9,6 +9,7 @@ adaptation more efficient.
 
 - Python >= 3.8
 - [Poetry](https://python-poetry.org/) for dependency and environment management
+- [direnv] (Optional) - For automatically exporting environment variables
 
 ## Environment Variables 
 We use environment variables to store certain paths
@@ -24,6 +25,7 @@ Change the following variables in the .envrc file.
 - `export PT_MODELS_CACHE_DIR=""`
 - `export OUTPUT_DIR=""`
 
+Run `source .envrc`
 
 
 ## Installation
@@ -34,6 +36,9 @@ Change the following variables in the .envrc file.
 - Use `poetry shell` to create a virtual environment
 
 > Commit your `poetry.lock` file if you install any new library.
+
+Note: We have tested this on a linux machine. If you are using Macbook M1 then you might encounter in to 
+some errors installing scipy, sklearn etc. 
 
 ### Download Datasets
 
