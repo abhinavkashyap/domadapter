@@ -4,6 +4,11 @@ Code for our paper at `EACL'23: UDAPTER-Efficient Domain Adaptation Using Adapte
 of unsupervised domain adaptation and parameter efficient fine-tuning to make domain 
 adaptation more efficient. 
 
+
+## Use with adapter-transformers and :hugs:
+Coming soon 
+
+
 # Training Requirements
 
 
@@ -71,3 +76,7 @@ For example to train the ***Joint-DT-:electric_plug:*** on the MNLI dataset run
 ```
 
 ---
+
+## Citations 
+
+Will be updated soon
