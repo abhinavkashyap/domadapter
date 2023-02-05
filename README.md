@@ -4,6 +4,10 @@ Code for our paper at `EACL'23: UDAPTER-Efficient Domain Adaptation Using Adapte
 of unsupervised domain adaptation and parameter efficient fine-tuning to make domain 
 adaptation more efficient. 
 
+<p align="center">
+  <img width="600" src="udapter_pic.png">
+</p>
+
 
 ## Use with adapter-transformers and :hugs:
 Coming soon 
