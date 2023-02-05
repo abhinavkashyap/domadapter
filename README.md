@@ -14,7 +14,7 @@ Coming soon
 
 - Python >= 3.8
 - [Poetry](https://python-poetry.org/) for dependency and environment management
-- [direnv] (Optional) - For automatically exporting environment variables
+- [direnv](https://direnv.net/) (Optional) - For automatically exporting environment variables
 
 ## Environment Variables 
 We use environment variables to store certain paths
