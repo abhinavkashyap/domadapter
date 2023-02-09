@@ -23,7 +23,7 @@ def sa():
 
     with console.status("Downloading SA data"):
         downloader.download_file_from_google_drive(
-            file_id="1QrjZJqMz68qmaxXJN8g8KL3IhGRsjZKm", destination=destination_file
+            file_id="1Zv35X7jQ4qLJmaKqPImktiV53yZV9Mzs", destination=destination_file
         )
 
     console.print(f"[green] Downloaded SA Data")
