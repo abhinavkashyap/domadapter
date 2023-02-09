@@ -83,4 +83,22 @@ For example to train the ***Joint-DT-:electric_plug:*** on the MNLI dataset run
 
 ## Citations 
 
-Will be updated soon
+```
+@misc{https://doi.org/10.48550/arxiv.2302.03194,
+  doi = {10.48550/ARXIV.2302.03194},
+  
+  url = {https://arxiv.org/abs/2302.03194},
+  
+  author = {Malik, Bhavitvya and Kashyap, Abhinav Ramesh and Kan, Min-Yen and Poria, Soujanya},
+  
+  keywords = {Computation and Language (cs.CL), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  
+  title = {UDApter -- Efficient Domain Adaptation Using Adapters},
+  
+  publisher = {arXiv},
+  
+  year = {2023},
+  
+  copyright = {Creative Commons Attribution 4.0 International
+}
+```
