@@ -1,4 +1,5 @@
 from domadapter.commands.download import download
+from domadapter.commands.results import results
 import click
 from art import tprint
 
@@ -13,6 +14,7 @@ def main():
     # Prints the ascii art
     tprint("Dom Adapters")
     domadapter_group.add_command(download)
+    domadapter_group.add_command(results)
     domadapter_group()
 
 

@@ -26,17 +26,17 @@ def sa():
             file_id="1Zv35X7jQ4qLJmaKqPImktiV53yZV9Mzs", destination=destination_file
         )
 
-    console.print(f"[green] Downloaded SA Data")
+    console.print("[green] Downloaded SA Data")
 
     # unzip sst
     with console.status("Extracting SA"):
         unzip_file(filepath=str(destination_file), destination_dir=str(dataset_cache))
 
-    console.print(f"[green] Extracted SA Data")
+    console.print("[green] Extracted SA Data")
     # delete the zip file
     destination_file.unlink()
 
-    console.print(f"[green] SA Data Available")
+    console.print("[green] SA Data Available")
 
 
 @download.command()
@@ -47,7 +47,7 @@ def mnli():
 
     prepare_mnli()
 
-    console.print(f"[green] MNLI Data Available")
+    console.print("[green] MNLI Data Available")
 
 
 if __name__ == "__main__":

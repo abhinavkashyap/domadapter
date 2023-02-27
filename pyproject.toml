@@ -6,7 +6,6 @@ authors = ["Abhinav Ramesh Kashyap <abhinavkashyap92@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-adapter-transformers = "^2.1.2"
 rich = "^10.7.0"
 torch = "^1.9.0"
 datasets = "^1.11.0"
