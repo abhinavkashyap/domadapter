@@ -10,7 +10,7 @@ adaptation more efficient.
 
 
 ## Use with adapter-transformers and :hugs:
-Coming soon 
+The weights are now available at https://huggingface.co/domadapter
 
 
 # Training Requirements
@@ -49,7 +49,7 @@ Run `source .envrc`
 Note: We have tested this on a linux machine. If you are using Macbook M1 then you might encounter in to 
 some errors installing scipy, sklearn etc. 
 
-### Download Datasets
+## Download Datasets
 
 - Run `domadapter download mnli` to download the `mnli` dataset
 - Run `domadapter download sa` to download the `amazon` dataset.
@@ -58,7 +58,17 @@ some errors installing scipy, sklearn etc.
 `!pip install pytorch-lightning==1.4.2 datasets transformers pandas click wandb numpy rich`
 
 
-### Train Models 
+## Get results Instantaneously 
+You can run this on CPU and it will take a couple of minutes 
+
+**Join Domain Task Adapter for MNLI**
+```
+domadapter results mnli-joint-dt --source [source_domain] --target [target_domain]
+```
+For MNLI, The source and target domain can be one of `Fiction, Slate, Government, Telephone, Travel`
+
+Other models and other datasets are coming soon.
+## Train Models 
 
 See the `scripts` folder to train models. 
 For example to train the ***Joint-DT-:electric_plug:*** on the MNLI dataset run 
